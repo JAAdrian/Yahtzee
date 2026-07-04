@@ -142,6 +142,66 @@ Da die Datenbank im Docker-Volume liegt, solltest du sie regelmäßig sichern:
 docker compose cp app:/app/data/db.sqlite3 ./backup/kniffel-$(date +%F).sqlite3
 ```
 
+## Deployment mit GitHub Container Registry (GHCR)
+
+Ein `Makefile` vereinfacht das Bauen, Pushen und Deployen des Images.
+
+### Voraussetzungen
+
+- Ein GitHub Account mit einem Personal Access Token (PAT), das mindestens die Berechtigung `write:packages` hat.
+- Das Token in der Umgebungsvariable `GITHUB_TOKEN` verfügbar machen.
+- Deinen GitHub-Username in der Umgebungsvariable `GITHUB_USER` setzen.
+- SSH-Zugriff auf den Zielserver, auf dem Docker Compose bereits eingerichtet ist.
+
+### Umgebungsvariablen setzen
+
+```bash
+export GITHUB_USER=your-github-username
+export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+```
+
+### Makefile-Targets
+
+```bash
+make help          # Zeigt alle verfügbaren Targets
+make test          # Django-Tests lokal ausführen
+make build         # Docker-Image bauen
+make login         # Lokal bei GHCR.io anmelden
+make push          # Image nach GHCR.io pushen
+make push-latest   # Zusätzlich als 'latest' taggen und pushen
+make deploy        # Image auf dem Server pullen und Container neustarten
+make clean         # Lokales Image entfernen
+```
+
+### Beispiel: vollständiges Build & Deploy
+
+```bash
+# 1. Tests laufen lassen
+make test
+
+# 2. Image bauen
+make build
+
+# 3. Bei GHCR.io anmelden und Image pushen
+make login
+make push
+make push-latest
+
+# 4. Auf Server deployen (Remote-Daten in Makefile anpassen oder übergeben)
+make deploy REMOTE_HOST=user@server.example.com REMOTE_DIR=/opt/kniffel-tracker
+```
+
+### Server-Vorbereitung für `make deploy`
+
+Auf dem Zielserver musst du mindestens einmalig bei GHCR.io eingeloggt sein, damit `docker pull` funktioniert:
+
+```bash
+ssh user@server.example.com
+echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USER --password-stdin
+```
+
+Außerdem sollte `docker-compose.yml` und ggf. eine `.env`-Datei bereits unter `REMOTE_DIR` liegen.
+
 ### Hinweise zum Docker-Setup
 
 - Das Entrypoint-Skript `docker-entrypoint.sh` führt beim Start automatisch `python manage.py migrate` aus.
