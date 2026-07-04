@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Spiele - Kniffel Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Spiele</h2>
+    <a href="{% url 'game_create' %}" class="btn btn-success">Neues Spiel starten</a>
+</div>
+
+<div class="card">
+    <h3>Laufende Spiele</h3>
+    {% if active_games %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Spiel</th>
+                    <th>Start</th>
+                    <th>Spieler</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in active_games %}
+                    <tr>
+                        <td><a href="{% url 'game_detail' game.pk %}">Spiel #{{ game.id }}</a></td>
+                        <td>{{ game.created_at|date:"d.m.Y H:i" }}</td>
+                        <td>{{ game.game_players.count }}</td>
+                        <td class="actions">
+                            <a href="{% url 'game_add_player' game.pk %}" class="btn">Spieler hinzufügen</a>
+                            <a href="{% url 'game_score' game.pk %}" class="btn">Punkte eintragen</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="small">Keine laufenden Spiele.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>Abgeschlossene Spiele</h3>
+    {% if finished_games %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Spiel</th>
+                    <th>Ende</th>
+                    <th>Spieler</th>
+                    <th>Gewinner</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in finished_games %}
+                    <tr>
+                        <td><a href="{% url 'game_results' game.pk %}">Spiel #{{ game.id }}</a></td>
+                        <td>{{ game.finished_at|date:"d.m.Y H:i" }}</td>
+                        <td>{{ game.game_players.count }}</td>
+                        <td>
+                            {% with ranked=game.ranked_players %}
+                                {% if ranked %}{{ ranked.0.player.name }}{% else %}-{% endif %}
+                            {% endwith %}
+                        </td>
+                        <td><a href="{% url 'game_results' game.pk %}" class="btn btn-secondary">Ergebnisse</a></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="small">Noch keine abgeschlossenen Spiele.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Ewige Liste - Kniffel Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Ewige Liste</h2>
+    <p class="small">Rangliste aller Spieler nach gewonnenen Spielen.</p>
+
+    {% if stats %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Platz</th>
+                    <th>Spieler</th>
+                    <th>Siege</th>
+                    <th>Spiele</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in stats %}
+                    <tr {% if forloop.first %}class="winner"{% endif %}>
+                        <td>#{{ forloop.counter }}</td>
+                        <td>{{ entry.player.name }}</td>
+                        <td>{{ entry.wins }}</td>
+                        <td>{{ entry.games_played }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="small">Noch keine abgeschlossenen Spiele.</p>
+    {% endif %}
+
+    <div class="actions">
+        <a href="{% url 'game_list' %}" class="btn btn-secondary">Zurück zu den Spielen</a>
+    </div>
+</div>
+{% endblock %}

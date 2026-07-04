@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Neues Spiel - Kniffel Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Neues Spiel starten</h2>
+    <form method="post">
+        {% csrf_token %}
+        <p>Ein neues Spiel wird angelegt. Anschließend kannst du Spieler hinzufügen.</p>
+        <div class="actions">
+            <button type="submit" class="btn btn-success">Spiel starten</button>
+            <a href="{% url 'game_list' %}" class="btn btn-secondary">Abbrechen</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Spiel #{{ game.id }} - Kniffel Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Spiel #{{ game.id }}</h2>
+    <p class="small">
+        Gestartet: {{ game.created_at|date:"d.m.Y H:i" }}
+        {% if game.is_complete %}<br>Abgeschlossen: {{ game.finished_at|date:"d.m.Y H:i" }}{% endif %}
+    </p>
+
+    <h3>Spieler</h3>
+    {% if game.game_players.all %}
+        <ul class="clean">
+            {% for gp in game.game_players.all %}
+                <li>{{ gp.player.name }} – {{ gp.total_score }} Punkte</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="small">Noch keine Spieler.</p>
+    {% endif %}
+
+    <div class="actions">
+        {% if not game.is_complete %}
+            <a href="{% url 'game_add_player' game.pk %}" class="btn">Spieler hinzufügen</a>
+            <a href="{% url 'game_score' game.pk %}" class="btn">Punkte eintragen</a>
+            <a href="{% url 'game_finish' game.pk %}" class="btn btn-success">Spiel beenden</a>
+        {% else %}
+            <a href="{% url 'game_results' game.pk %}" class="btn btn-secondary">Ergebnisse</a>
+        {% endif %}
+        <a href="{% url 'game_delete' game.pk %}" class="btn btn-danger">Spiel löschen</a>
+        <a href="{% url 'game_list' %}" class="btn btn-secondary">Zurück</a>
+    </div>
+</div>
+{% endblock %}

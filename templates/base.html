@@ -1,0 +1,131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Kniffel Tracker{% endblock %}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f6fa;
+            color: #222;
+        }
+        header {
+            background: #2c3e50;
+            color: #fff;
+            padding: 1rem;
+        }
+        header h1 { margin: 0; font-size: 1.4rem; }
+        nav {
+            margin-top: 0.5rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        nav a {
+            color: #ecf0f1;
+            text-decoration: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+        }
+        nav a:hover { background: rgba(255,255,255,0.2); }
+        main {
+            max-width: 1100px;
+            margin: 1.5rem auto;
+            padding: 0 1rem;
+        }
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        h2 { margin-top: 0; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        th, td {
+            padding: 0.6rem;
+            border: 1px solid #e0e0e0;
+            text-align: left;
+        }
+        th { background: #f0f1f5; }
+        tr:nth-child(even) { background: #fafbfc; }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 0.45rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        input[type="number"] { text-align: right; }
+        .btn {
+            display: inline-block;
+            background: #3498db;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 0.9rem;
+            border-radius: 4px;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .btn:hover { background: #2980b9; }
+        .btn-secondary { background: #95a5a6; }
+        .btn-secondary:hover { background: #7f8c8d; }
+        .btn-danger { background: #e74c3c; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-success { background: #27ae60; }
+        .btn-success:hover { background: #1e8449; }
+        .actions { margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .messages { margin-bottom: 1rem; }
+        .messages li {
+            padding: 0.6rem 1rem;
+            border-radius: 4px;
+            list-style: none;
+            margin-bottom: 0.4rem;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .error { background: #f8d7da; color: #721c24; }
+        .small { color: #666; font-size: 0.9rem; }
+        .score-sheet th, .score-sheet td { text-align: center; }
+        .score-sheet td:first-child, .score-sheet th:first-child { text-align: left; }
+        .total-row { font-weight: bold; background: #e8f0fe !important; }
+        .winner { background: #fff3cd; }
+        label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
+        .form-row { margin-bottom: 0.75rem; }
+        ul.clean { list-style: none; padding: 0; }
+        ul.clean li { margin-bottom: 0.35rem; }
+        .checkbox-list label { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; cursor: pointer; }
+        .checkbox-list input { width: auto; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🎲 Kniffel Tracker</h1>
+        <nav>
+            <a href="{% url 'game_list' %}">Spiele</a>
+            <a href="{% url 'leaderboard' %}">Ewige Liste</a>
+            <a href="{% url 'player_list' %}">Spieler</a>
+        </nav>
+    </header>
+    <main>
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Spiel beenden - Spiel #{{ game.id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Spiel #{{ game.id }} beenden</h2>
+    <p>Sobald das Spiel beendet ist, können keine Punkte mehr eingetragen werden. Das Ergebnis wird in die ewige Liste übernommen.</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+            <button type="submit" class="btn btn-success">Jetzt beenden</button>
+            <a href="{% url 'game_detail' game.pk %}" class="btn btn-secondary">Abbrechen</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
