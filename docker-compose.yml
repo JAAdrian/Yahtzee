@@ -1,0 +1,21 @@
+services:
+  app:
+    build: .
+    container_name: kniffel-tracker
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist the SQLite database outside the container.
+      - kniffel_data:/app/data
+    environment:
+      # Generate a strong secret key before deploying, e.g.:
+      # python -c "import secrets; print(secrets.token_urlsafe(50))"
+      - SECRET_KEY=change-me-before-deployment
+      - DEBUG=False
+      # Adjust to your domain(s).
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      # Tell Django where the persistent SQLite file lives.
+      - DATABASE_PATH=/app/data/db.sqlite3
+
+volumes:
+  kniffel_data:
