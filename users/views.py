@@ -1,21 +1,52 @@
-from django.http import HttpResponse
+from django.contrib import messages
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
+
+from .models import Player
 
 
 def player_list(request):
-    return HttpResponse("Player list")
+    players = Player.objects.order_by("name")
+    return render(request, "users/player_list.html", {"players": players})
 
 
 def player_create(request):
-    return HttpResponse("Create player")
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        if name:
+            player, created = Player.objects.get_or_create(name__iexact=name, defaults={"name": name})
+            if created:
+                messages.success(request, f"Spieler '{player.name}' wurde angelegt.")
+            else:
+                messages.info(request, f"Spieler '{player.name}' existiert bereits.")
+            return HttpResponseRedirect(reverse("player_list"))
+        messages.error(request, "Bitte einen Namen eingeben.")
+    return render(request, "users/player_form.html")
 
 
 def player_detail(request, pk):
-    return HttpResponse(f"Player detail: {pk}")
+    player = get_object_or_404(Player, pk=pk)
+    return render(request, "users/player_detail.html", {"player": player})
 
 
 def player_update(request, pk):
-    return HttpResponse(f"Update player: {pk}")
+    player = get_object_or_404(Player, pk=pk)
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        if name:
+            player.name = name
+            player.save()
+            messages.success(request, f"Spieler '{player.name}' wurde aktualisiert.")
+            return HttpResponseRedirect(reverse("player_detail", kwargs={"pk": player.pk}))
+        messages.error(request, "Bitte einen Namen eingeben.")
+    return render(request, "users/player_form.html", {"player": player})
 
 
 def player_delete(request, pk):
-    return HttpResponse(f"Delete player: {pk}")
+    player = get_object_or_404(Player, pk=pk)
+    if request.method == "POST":
+        player.delete()
+        messages.success(request, "Spieler wurde gelöscht.")
+        return HttpResponseRedirect(reverse("player_list"))
+    return render(request, "users/player_confirm_delete.html", {"player": player})

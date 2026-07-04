@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load games_extras %}
+
+{% block title %}Punkte eintragen - Spiel #{{ game.id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Punkte eintragen – Spiel #{{ game.id }}</h2>
+    <p class="small">Trage für jede Kategorie und jeden Spieler die erzielten Punkte ein. Leere Felder werden ignoriert. Bei festen Kategorien wähle „Gewürfelt“ oder „Gestrichen“.</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <table class="score-sheet">
+            <thead>
+                <tr>
+                    <th>Kategorie</th>
+                    {% for gp in players %}
+                        <th>{{ gp.player.name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                    <tr>
+                        <td>{{ category.label }}{% if category in fixed_points %} ({{ fixed_points|get_item:category }} Pkte){% endif %}</td>
+                        {% for gp in players %}
+                            {% with entry=gp.scores_by_category|get_item:category.value %}
+                                <td>
+                                    {% if category in fixed_points %}
+                                        <select name="state_{{ gp.pk }}_{{ category.value }}">
+                                            <option value="" {% if not entry or entry.is_empty %}selected{% endif %}>—</option>
+                                            <option value="filled" {% if entry and entry.is_filled %}selected{% endif %}>Gewürfelt</option>
+                                            <option value="stricken" {% if entry and entry.is_stricken %}selected{% endif %}>Gestrichen</option>
+                                        </select>
+                                    {% else %}
+                                        <input
+                                            type="number"
+                                            name="score_{{ gp.pk }}_{{ category.value }}"
+                                            min="0"
+                                            value="{% if entry and entry.is_filled %}{{ entry.value|default:'' }}{% endif %}"
+                                        >
+                                    {% endif %}
+                                </td>
+                            {% endwith %}
+                        {% endfor %}
+                    </tr>
+                    {% if category == "sixes" %}
+                        <tr class="sum-row">
+                            <td>Summe Oben</td>
+                            {% for gp in players %}
+                                <td>{{ gp.upper_sum }}</td>
+                            {% endfor %}
+                        </tr>
+                        <tr class="bonus-row">
+                            <td>Bonus (≥63 → +35)</td>
+                            {% for gp in players %}
+                                <td class="{% if gp.bonus > 0 %}bonus-achieved{% else %}bonus-missed{% endif %}">{{ gp.bonus }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                <tr class="sum-row">
+                    <td>Summe Unten</td>
+                    {% for gp in players %}
+                        <td>{{ gp.lower_sum }}</td>
+                    {% endfor %}
+                </tr>
+                <tr class="total-row">
+                    <td>Gesamt</td>
+                    {% for gp in players %}
+                        <td>{{ gp.total_score }}</td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="actions">
+            <button type="submit" class="btn btn-success">Punkte speichern</button>
+            <a href="{% url 'game_detail' game.pk %}" class="btn btn-secondary">Zurück</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .sum-row td, .sum-row th { background: #eef2f7; font-weight: bold; }
+    .bonus-row td, .bonus-row th { font-weight: bold; }
+    .bonus-achieved { color: #27ae60; background: #eafaf1 !important; }
+    .bonus-missed { color: #c0392b; background: #fdecea !important; }
+    select { min-width: 110px; }
+</style>
+{% endblock %}

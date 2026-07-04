@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Spiel löschen - Spiel #{{ game.id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Spiel #{{ game.id }} löschen</h2>
+    <p>Soll das Spiel wirklich gelöscht werden? Alle zugehörigen Punkte und Spielerzuordnungen werden mit entfernt.</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+            <button type="submit" class="btn btn-danger">Löschen</button>
+            <a href="{% url 'game_detail' game.pk %}" class="btn btn-secondary">Abbrechen</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

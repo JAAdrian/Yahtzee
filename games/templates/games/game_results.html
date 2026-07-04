@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load games_extras %}
+
+{% block title %}Ergebnisse - Spiel #{{ game.id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Ergebnisse – Spiel #{{ game.id }}</h2>
+    <p class="small">Abgeschlossen: {{ game.finished_at|date:"d.m.Y H:i" }}</p>
+
+    {% if ranked %}
+        <table class="score-sheet">
+            <thead>
+                <tr>
+                    <th>Platz</th>
+                    <th>Spieler</th>
+                    <th>Summe Oben</th>
+                    <th>Bonus</th>
+                    <th>Summe Unten</th>
+                    <th>Gesamt</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gp in ranked %}
+                    <tr {% if forloop.first %}class="winner"{% endif %}>
+                        <td>#{{ forloop.counter }}</td>
+                        <td>{{ gp.player.name }}</td>
+                        <td>{{ gp.upper_sum }}</td>
+                        <td>{{ gp.bonus }}</td>
+                        <td>{{ gp.lower_sum }}</td>
+                        <td>{{ gp.total_score }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if ranked.0 %}
+            <p><strong>🏆 Gewinner: {{ ranked.0.player.name }} mit {{ ranked.0.total_score }} Punkten</strong></p>
+        {% endif %}
+    {% else %}
+        <p class="small">Keine Spieler oder Punkte vorhanden.</p>
+    {% endif %}
+
+    <div class="actions">
+        <a href="{% url 'leaderboard' %}" class="btn">Ewige Liste</a>
+        <a href="{% url 'game_list' %}" class="btn btn-secondary">Zurück zu den Spielen</a>
+    </div>
+</div>
+
+<style>
+    .winner td { background: #fff3cd; }
+</style>
+{% endblock %}

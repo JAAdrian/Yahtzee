@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Spieler hinzufügen - Spiel #{{ game.id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Spieler zu Spiel #{{ game.id }} hinzufügen</h2>
+
+    {% if available_players %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-row checkbox-list">
+                {% for player in available_players %}
+                    <label>
+                        <input type="checkbox" name="players" value="{{ player.pk }}">
+                        {{ player.name }}
+                    </label>
+                {% endfor %}
+            </div>
+            
+            <div class="actions">
+                <button type="submit" class="btn btn-success">Hinzufügen</button>
+                <a href="{% url 'game_detail' game.pk %}" class="btn btn-secondary">Abbrechen</a>
+            </div>
+        </form>
+    {% else %}
+        <p class="small">Keine weiteren Spieler verfügbar. <a href="{% url 'player_create' %}">Neuen Spieler anlegen</a>.</p>
+        <div class="actions">
+            <a href="{% url 'game_detail' game.pk %}" class="btn btn-secondary">Zurück</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

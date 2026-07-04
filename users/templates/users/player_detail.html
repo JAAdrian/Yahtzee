@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}{{ player.name }} - Kniffel Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>{{ player.name }}</h2>
+    <p class="small">Mitglied seit {{ player.created_at|date:"d.m.Y H:i" }}</p>
+
+    <h3>Abgeschlossene Spiele</h3>
+    {% with entries=player.game_entries.all %}
+        {% if entries %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Spiel</th>
+                        <th>Summe Oben</th>
+                        <th>Bonus</th>
+                        <th>Summe Unten</th>
+                        <th>Gesamt</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for gp in entries %}
+                        <tr>
+                            <td><a href="{% url 'game_results' gp.game.pk %}">Spiel #{{ gp.game.id }}</a></td>
+                            <td>{{ gp.upper_sum }}</td>
+                            <td>{{ gp.bonus }}</td>
+                            <td>{{ gp.lower_sum }}</td>
+                            <td>{{ gp.total_score }}</td>
+                            <td>{% if gp.game.is_complete %}abgeschlossen{% else %}läuft{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="small">Noch keine Spiele.</p>
+        {% endif %}
+    {% endwith %}
+
+    <div class="actions">
+        <a href="{% url 'player_update' player.pk %}" class="btn">Bearbeiten</a>
+        <a href="{% url 'player_delete' player.pk %}" class="btn btn-danger">Löschen</a>
+        <a href="{% url 'player_list' %}" class="btn btn-secondary">Zurück zur Liste</a>
+    </div>
+</div>
+{% endblock %}
