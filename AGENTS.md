@@ -56,9 +56,9 @@ The repo includes a `fly.toml` that builds the image from the repo's `Dockerfile
 ### First-time setup
 
 ```bash
-fly apps create kniffel-tracker
-fly volumes create kniffel_data --region fra --size 1
-fly secrets set SECRET_KEY="<generate-with-secrets.token_urlsafe(50)>" ALLOWED_HOSTS="kniffel-tracker.fly.dev"
+fly apps create yahtzee
+fly volumes create kniffel_data --region ams --size 1
+fly secrets set SECRET_KEY="<generate-with-secrets.token_urlsafe(50)>" ALLOWED_HOSTS="yahtzee.fly.dev"
 fly deploy
 ```
 

@@ -3,13 +3,17 @@
 # persistent Fly Volume for the SQLite database.
 #
 # Before first deploy:
-#   1. Create the app: fly apps create kniffel-tracker (or any name)
-#   2. Create the volume: fly volumes create kniffel_data --region <region> --size 1
-#   3. Set secrets:     fly secrets set SECRET_KEY=<...> ALLOWED_HOSTS=<...>
-#   4. Deploy:          fly deploy
+#   1. Create the app:     fly apps create yahtzee
+#   2. Create the volume:  fly volumes create kniffel_data --region ams --size 1
+#   3. Set secrets:        fly secrets set SECRET_KEY=<...> ALLOWED_HOSTS=<...>
+#   4. Deploy:            fly deploy
+#
+# Note: keep the Machine count at 1 because SQLite cannot handle multiple
+# concurrent writers safely. Run `fly scale count 1` if needed.
 
-app = "kniffel-tracker"
-primary_region = "fra"
+app = "yahtzee"
+primary_region = "ams"
+console_command = "/app/manage.py shell"
 
 [build]
   dockerfile = "Dockerfile"
@@ -17,6 +21,7 @@ primary_region = "fra"
 [env]
   DATABASE_PATH = "/app/data/db.sqlite3"
   DEBUG = "False"
+  PORT = "8000"
   PYTHONDONTWRITEBYTECODE = "1"
   PYTHONUNBUFFERED = "1"
 
@@ -34,4 +39,5 @@ primary_region = "fra"
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "256mb"
+
+
