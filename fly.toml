@@ -1,6 +1,6 @@
 # Fly.io deployment config for Kniffel Tracker.
-# This app is deployed as a pre-built Docker image from GHCR with a persistent
-# Fly Volume for the SQLite database.
+# Fly builds the Docker image from the repo's Dockerfile and deploys it with a
+# persistent Fly Volume for the SQLite database.
 #
 # Before first deploy:
 #   1. Create the app: fly apps create kniffel-tracker (or any name)
@@ -12,7 +12,7 @@ app = "kniffel-tracker"
 primary_region = "fra"
 
 [build]
-  image = "ghcr.io/jaadrian/kniffel-tracker:latest"
+  dockerfile = "Dockerfile"
 
 [env]
   DATABASE_PATH = "/app/data/db.sqlite3"
