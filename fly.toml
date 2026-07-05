@@ -8,8 +8,11 @@
 #   3. Set secrets:        fly secrets set SECRET_KEY=<...> ALLOWED_HOSTS=<...>
 #   4. Deploy:            fly deploy
 #
-# Note: keep the Machine count at 1 because SQLite cannot handle multiple
-# concurrent writers safely. Run `fly scale count 1` if needed.
+# IMPORTANT: this app uses SQLite on a single Fly Volume. SQLite cannot
+# handle multiple concurrent writers, so you MUST keep the app scaled to
+# exactly one Machine. After the first deploy, run:
+#   fly scale count 1
+# Creating more than one Machine or volume will risk database corruption.
 
 app = "yahtzee"
 primary_region = "ams"
