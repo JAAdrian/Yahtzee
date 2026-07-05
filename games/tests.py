@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
@@ -101,6 +102,9 @@ class GamePlayerScoreTests(TestCase):
 
 class GameViewTests(TestCase):
     def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username="testuser", password="testpass")
+        self.client.force_login(self.user)
         self.alice = Player.objects.create(name="Alice")
         self.bob = Player.objects.create(name="Bob")
 

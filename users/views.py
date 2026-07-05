@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -11,6 +12,7 @@ def player_list(request):
     return render(request, "users/player_list.html", {"players": players})
 
 
+@login_required
 def player_create(request):
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
@@ -30,6 +32,7 @@ def player_detail(request, pk):
     return render(request, "users/player_detail.html", {"player": player})
 
 
+@login_required
 def player_update(request, pk):
     player = get_object_or_404(Player, pk=pk)
     if request.method == "POST":
@@ -43,6 +46,7 @@ def player_update(request, pk):
     return render(request, "users/player_form.html", {"player": player})
 
 
+@login_required
 def player_delete(request, pk):
     player = get_object_or_404(Player, pk=pk)
     if request.method == "POST":
