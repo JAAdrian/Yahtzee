@@ -14,7 +14,7 @@ Compact reference for OpenCode sessions working on this Django project.
 - Target Python: **3.14.6** (declared in `.tool-versions`).
 - A local `.venv/` already exists and should be used.
 - Activate: `source .venv/bin/activate` or use `.venv/bin/python` directly.
-- Dependencies: `requirements.txt` pins `django==6.0.6` plus `gunicorn`.
+- Dependencies: `requirements.txt` pins `django==6.0.6`, `gunicorn`, and `whitenoise`.
 
 ## Common Commands
 
@@ -39,14 +39,16 @@ Make shortcuts (verify `GITHUB_USER` / `GITHUB_TOKEN` / `REMOTE_HOST` / `REMOTE_
   - Numeric: `score_<gameplayer_id>_<category>`
   - Fixed state: `state_<gameplayer_id>_<category>` (values: `empty`, `filled`, `stricken`)
 - `GamePlayer.total_score` is computed on the fly from `ScoreEntry` rows; there is no denormalized total field.
+- Creating/editing/deleting players and games is restricted to authenticated users via `@login_required`; lists and detail/result/leaderboard views remain public.
 - Leaderboard counts wins by checking whether a player ranked first in each completed game.
 
 ## Docker / Production Notes
 
 - `docker compose up -d --build` uses SQLite persisted in named volume `kniffel_data` mounted at `/app/data`.
-- The container entrypoint (`docker-entrypoint.sh`) runs `migrate --noinput` on every start, then launches Gunicorn.
+- The container entrypoint (`docker-entrypoint.sh`) runs `collectstatic --noinput` and `migrate --noinput` on every start, then launches Gunicorn.
 - Override in `docker-compose.yml` before real deployment: `SECRET_KEY`, `DEBUG=False`, `ALLOWED_HOSTS`.
 - `DATABASE_PATH` env var overrides the SQLite location; Docker sets it to `/app/data/db.sqlite3`.
+- Production static files are served by WhiteNoise; `STATIC_ROOT` is `BASE_DIR / "staticfiles"`.
 - `Makefile` defaults to `GITHUB_USER=jaadrian`; override via env or argument.
 
 ## Fly.io Deployment
@@ -68,6 +70,7 @@ fly deploy
 - `ALLOWED_HOSTS` — Fly app hostname(s), comma-separated; used by Django host validation.
 - `DATABASE_PATH` — already set in `fly.toml` to `/app/data/db.sqlite3`.
 - `DEBUG` — set to `"False"` in `fly.toml`.
+- `SECURE_PROXY_SSL_HEADER` and `CSRF_TRUSTED_ORIGINS` are configured in `settings.py` so HTTPS/CSRF work behind Fly's proxy.
 
 ### fly.toml notes
 
@@ -79,13 +82,20 @@ fly deploy
 
 ### Updating the app
 
-After pushing code changes to the repo:
+Deploy from the local repo (no Git push required):
 
 ```bash
-fly deploy
+fly deploy --ha=false
 ```
 
-Fly builds a fresh image from `Dockerfile` and deploys it.
+`--ha=false` prevents Fly from launching a second Machine, which would break the single-volume SQLite setup.
+
+### Creating an admin user on Fly
+
+```bash
+fly ssh console
+python /app/manage.py createsuperuser
+```
 
 ## Things That Are Easy to Miss
 
