@@ -4,6 +4,7 @@
 # Override these via environment variables or make arguments, e.g.:
 #   make build IMAGE_NAME=ghcr.io/myuser/kniffel-tracker TAG=1.2.3
 
+GITHUB_USER ?= "jaadrian"
 IMAGE_NAME ?= ghcr.io/$(GITHUB_USER)/kniffel-tracker
 TAG ?= latest
 FULL_IMAGE = $(IMAGE_NAME):$(TAG)
