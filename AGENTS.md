@@ -51,7 +51,7 @@ Make shortcuts (verify `GITHUB_USER` / `GITHUB_TOKEN` / `REMOTE_HOST` / `REMOTE_
 
 ## Fly.io Deployment
 
-The repo includes a `fly.toml` for deploying the GHCR image with a persistent SQLite volume.
+The repo includes a `fly.toml` that builds the image from the repo's `Dockerfile` and deploys it with a persistent Fly Volume for the SQLite database.
 
 ### First-time setup
 
@@ -71,7 +71,7 @@ fly deploy
 
 ### fly.toml notes
 
-- Image source: `ghcr.io/jaadrian/kniffel-tracker:latest`.
+- Build source: the repo's `Dockerfile` (managed by Fly on deploy).
 - Volume `kniffel_data` is mounted at `/app/data` so SQLite survives redeploys.
 - `auto_stop_machines = "stop"` and `min_machines_running = 0` allow the free-scale Machine to stop when idle. If you want it always on, set `min_machines_running = 1` and `auto_stop_machines = "off"`.
 - Because SQLite cannot handle multiple writers safely, keep the app scaled to **a single Machine** (`fly scale count 1`).
@@ -79,19 +79,13 @@ fly deploy
 
 ### Updating the app
 
-After pushing a new image to GHCR:
+After pushing code changes to the repo:
 
 ```bash
 fly deploy
 ```
 
-If the GHCR image is private, give Fly a token that can read packages:
-
-```bash
-fly secrets set GITHUB_TOKEN="ghp_..."
-```
-
-and ensure your image is either public or the token has `read:packages` scope.
+Fly builds a fresh image from `Dockerfile` and deploys it.
 
 ## Things That Are Easy to Miss
 
