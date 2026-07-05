@@ -16,8 +16,8 @@ COPY . $APP_HOME/
 
 # Create a non-root user to run the application.
 RUN groupadd -r kniffel && useradd -r -g kniffel kniffel \
-    && mkdir -p $APP_HOME/data \
-    && chown -R kniffel:kniffel $APP_HOME
+    && mkdir -p $APP_HOME/data /home/kniffel \
+    && chown -R kniffel:kniffel $APP_HOME /home/kniffel
 USER kniffel
 
 # Expose the Gunicorn port.
