@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
@@ -11,6 +12,11 @@ class PlayerModelTests(TestCase):
 
 
 class PlayerViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username="testuser", password="testpass")
+        self.client.force_login(self.user)
+
     def test_create_player(self):
         response = self.client.post(reverse("player_create"), {"name": "Alice"})
         self.assertEqual(response.status_code, 302)

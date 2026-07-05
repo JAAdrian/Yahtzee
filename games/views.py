@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
@@ -38,6 +39,7 @@ def game_list(request):
     )
 
 
+@login_required
 def game_create(request):
     if request.method == "POST":
         game = Game.objects.create()
@@ -51,6 +53,7 @@ def game_detail(request, pk):
     return render(request, "games/game_detail.html", {"game": game})
 
 
+@login_required
 def game_add_player(request, pk):
     game = get_object_or_404(Game, pk=pk)
     if game.is_complete:
@@ -128,6 +131,7 @@ def _parse_score_entry(entry, raw_value, raw_state):
         return False
 
 
+@login_required
 def game_score(request, pk):
     game = get_object_or_404(Game, pk=pk)
     if game.is_complete:
@@ -206,6 +210,7 @@ def game_score(request, pk):
     )
 
 
+@login_required
 def game_finish(request, pk):
     game = get_object_or_404(Game, pk=pk)
     if request.method == "POST":
@@ -218,6 +223,7 @@ def game_finish(request, pk):
     return render(request, "games/game_finish.html", {"game": game})
 
 
+@login_required
 def game_delete(request, pk):
     game = get_object_or_404(Game, pk=pk)
     if request.method == "POST":
