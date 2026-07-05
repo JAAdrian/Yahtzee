@@ -24,6 +24,12 @@ if _allowed_hosts:
 else:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"] if not DEBUG else []
 
+# Trust Fly.io's X-Forwarded-Proto header so Django knows requests are HTTPS.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Allow the deployed HTTPS origin for POST/CSRF requests.
+CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS if "." in host]
+
 
 # --- Application definition ------------------------------------------------
 
@@ -40,6 +46,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -114,3 +121,4 @@ USE_TZ = True
 # --- Static files -----------------------------------------------------------
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
