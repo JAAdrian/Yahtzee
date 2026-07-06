@@ -40,6 +40,8 @@ Ein kleiner Django-Service, um mit Freunden im echten Leben Kniffel (Yahtzee) zu
    pip install -r requirements.txt
    ```
 
+   Enthalten sind Django, Gunicorn, WhiteNoise, python-dotenv und django-ratelimit. HTMX liegt bereits unter `static/js/htmx.min.js` im Repository, es wird nicht vom CDN geladen.
+
 4. Lokale Umgebungsvariablen anlegen:
 
    ```bash
@@ -80,7 +82,7 @@ Optional kannst du einen Admin-Benutzer anlegen:
 python manage.py createsuperuser
 ```
 
-Die Admin-Oberfläche ist unter `/admin/` erreichbar.
+Die Admin-Oberfläche ist unter `/admin/` erreichbar. Für Production kann der Pfad über die Umgebungsvariable `ADMIN_URL` geändert werden (z. B. `ADMIN_URL=secret-admin/`).
 
 ## Tests ausführen
 
@@ -96,6 +98,8 @@ Tests laufen ohne gesetzte `SECRET_KEY`-Umgebungsvariable, da sie intern einen T
 - Vor einem Deployment müssen `SECRET_KEY` als Umgebungsvariable gesetzt und `DEBUG=False` sein. Die App verweigert den Start, wenn kein `SECRET_KEY` konfiguriert ist.
 - Für ein Production-Deployment mit Docker sollte die SQLite-Datenbank (`db.sqlite3`) in ein persistentes Volume ausgelagert werden, damit die Daten bei Container-Neustarts erhalten bleiben.
 - Für hohe Last oder mehrere Container-Instanzen empfiehlt sich ein Wechsel von SQLite zu PostgreSQL.
+- Für Production empfiehlt es sich, `ADMIN_URL` auf einen nicht-erratenen Pfad zu setzen und Login-Versuche am Admin zu loggen.
+- Production-Antworten enthalten Sicherheitsheader wie HSTS, `X-Frame-Options: DENY` und eine `Content-Security-Policy`. Mutierende Endpunkte werden durch `django-ratelimit` abgesichert.
 
 ## Docker-Deployment
 

@@ -56,6 +56,35 @@ if not DEBUG and not IS_TESTING:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
 
+# Hide the admin under a non-default path in production. Default stays /admin/.
+ADMIN_URL = os.environ.get("ADMIN_URL", "admin/")
+if not ADMIN_URL.endswith("/"):
+    ADMIN_URL = f"{ADMIN_URL}/"
+
+# Content Security Policy. HTMX is vendored in static/js, so script-src only needs
+# 'self'. Inline styles and event handlers still require 'unsafe-inline'.
+CSP_HEADER = "; ".join(
+    [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline'",
+        "connect-src 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+    ]
+)
+
+
+def CSP_MIDDLEWARE(get_response):
+    """Attach a basic Content-Security-Policy header to all responses."""
+
+    def middleware(request):
+        response = get_response(request)
+        response["Content-Security-Policy"] = CSP_HEADER
+        return response
+
+    return middleware
+
 
 # --- Application definition ------------------------------------------------
 
@@ -72,6 +101,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "yahtzee_tracker.settings.CSP_MIDDLEWARE",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -115,6 +145,25 @@ DATABASES = {
 }
 
 
+# --- Caching ----------------------------------------------------------------
+
+# LocMemCache is enough for django-ratelimit on a single Machine. If the app is
+# ever scaled beyond one Machine, switch to a shared cache (e.g. Redis).
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
+
+# --- Rate limiting ----------------------------------------------------------
+
+# LocMemCache is fine because the Fly.io deployment is scaled to a single
+# Machine. If that ever changes, switch to a shared cache backend.
+RATELIMIT_USE_CACHE = "default"
+RATELIMIT_VIEW = "yahtzee_tracker.views.ratelimited_429"
+
+
 # --- Password validation -----------------------------------------------------
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -153,3 +202,39 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+
+# --- Logging ----------------------------------------------------------------
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": "{asctime} {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+}

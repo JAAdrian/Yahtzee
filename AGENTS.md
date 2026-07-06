@@ -6,7 +6,9 @@ Compact reference for OpenCode sessions working on this Django project.
 
 - Single Django 6 app, SQLite by default, German-language UI (de-de / Europe/Berlin).
 - Apps: `users` (Player CRUD), `games` (Game, GamePlayer, ScoreEntry models + scoring logic).
-- Root URL redirects to `/games/`; admin lives at `/admin/`.
+- Root URL redirects to `/games/`; admin path is configurable via `ADMIN_URL` env var (default `/admin/`).
+- Production responses include a Content-Security-Policy header; HTMX is served from `static/js/htmx.min.js` so `script-src 'self'` is sufficient.
+- Mutating views are protected by `django-ratelimit` (admin login, game/player CRUD, score partial endpoint). Limits are generous enough for normal play.
 - HTMX (loaded from CDN) for reactive scoring; otherwise plain Django templates.
 
 ## Environment
@@ -14,8 +16,9 @@ Compact reference for OpenCode sessions working on this Django project.
 - Target Python: **3.14.6** (declared in `.tool-versions`).
 - A local `.venv/` already exists and should be used.
 - Activate: `source .venv/bin/activate` or use `.venv/bin/python` directly.
-- Dependencies: `requirements.txt` pins `django==6.0.6`, `gunicorn`, `whitenoise`, and `python-dotenv`.
+- Dependencies: `requirements.txt` pins `django==6.0.6`, `gunicorn`, `whitenoise`, `python-dotenv`, and `django-ratelimit`.
 - For local development, create a `.env` file with `SECRET_KEY=...` and `DEBUG=True`. The file is gitignored and loaded automatically.
+- HTMX is vendored in `static/js/htmx.min.js`; no CDN dependency at runtime.
 
 ## Common Commands
 
