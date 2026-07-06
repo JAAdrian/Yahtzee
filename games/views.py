@@ -301,7 +301,7 @@ def game_score_partial(request, pk):
 @login_required
 def game_finish(request, pk):
     game = get_object_or_404(Game, pk=pk)
-    if request.method in ("POST", "GET"):
+    if request.method == "POST":
         with transaction.atomic():
             game.is_complete = True
             game.finished_at = timezone.now()

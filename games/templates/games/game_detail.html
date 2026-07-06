@@ -25,7 +25,10 @@
         {% if not game.is_complete %}
             <a href="{% url 'game_add_player' game.pk %}" class="btn">Spieler hinzufügen</a>
             <a href="{% url 'game_score' game.pk %}" class="btn">Punkte eintragen</a>
-            <a href="{% url 'game_finish' game.pk %}" class="btn btn-success" onclick="return confirm('Spiel #{{ game.id }} wirklich beenden? Danach können keine Punkte mehr eingetragen werden.')">Spiel beenden</a>
+            <form method="post" action="{% url 'game_finish' game.pk %}" onsubmit="return confirm('Spiel #{{ game.id }} wirklich beenden? Danach können keine Punkte mehr eingetragen werden.')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">Spiel beenden</button>
+            </form>
         {% else %}
             <a href="{% url 'game_results' game.pk %}" class="btn btn-secondary">Ergebnisse</a>
         {% endif %}

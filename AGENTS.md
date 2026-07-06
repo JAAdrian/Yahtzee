@@ -21,7 +21,7 @@ Compact reference for OpenCode sessions working on this Django project.
 Use `.venv/bin/python manage.py <cmd>` or activate the venv first:
 
 - Run dev server: `python manage.py runserver` → http://127.0.0.1:8000/
-- Run tests: `python manage.py test` (30 tests across `users/tests.py`, `games/tests.py`)
+- Run tests: `python manage.py test` (30 tests across `users/tests.py`, `games/tests.py`). Tests use an internal test-only `SECRET_KEY`, so no env var is needed locally.
 - Run one app’s tests: `python manage.py test games` or `python manage.py test users`
 - Apply migrations: `python manage.py migrate`
 - Create admin user: `python manage.py createsuperuser`
