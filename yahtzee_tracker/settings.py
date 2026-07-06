@@ -3,7 +3,10 @@ Django settings for yahtzee_tracker project.
 """
 
 import os
+import sys
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -11,12 +14,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- Security settings ------------------------------------------------------
 
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY",
-    "django-insecure-hfzsl$qri6sm@*=4_8lq*+4j+!e#5#&bd&l#&^qy&g(3x0(mxq",
-)
+SECRET_KEY = os.environ.get("SECRET_KEY")
+IS_TESTING = "test" in sys.argv
+if not SECRET_KEY:
+    if IS_TESTING:
+        SECRET_KEY = "test-secret-key-not-for-production"
+    else:
+        raise ImproperlyConfigured("SECRET_KEY environment variable is required.")
 
-DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
+DEBUG = os.environ.get("DEBUG", "").lower() in ("true", "1", "yes")
 
 _allowed_hosts = os.environ.get("ALLOWED_HOSTS", "")
 if _allowed_hosts:
@@ -24,11 +30,25 @@ if _allowed_hosts:
 else:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"] if not DEBUG else []
 
-# Trust Fly.io's X-Forwarded-Proto header so Django knows requests are HTTPS.
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
 # Allow the deployed HTTPS origin for POST/CSRF requests.
 CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS if "." in host]
+
+# Trust Fly.io's X-Forwarded-Proto header only in production, never on a dev box.
+if not DEBUG and any("." in host for host in ALLOWED_HOSTS):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Production-only HTTPS hardening. Skip SSL redirect during tests so the test
+# client does not get 301'd to HTTPS on every request.
+if not DEBUG and not IS_TESTING:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
 
 
 # --- Application definition ------------------------------------------------

@@ -8,7 +8,7 @@
     <h2>Punkte eintragen – Spiel #{{ game.id }}</h2>
     <p class="small">Trage für jede Kategorie und jeden Spieler die erzielten Punkte ein. Bei festen Kategorien wähle „Gewürfelt“ oder „Gestrichen“. Änderungen werden automatisch gespeichert.</p>
 
-    <form method="post" action="{% url 'game_score' game.pk %}">
+    <form id="score-form" method="post" action="{% url 'game_score' game.pk %}">
         {% csrf_token %}
 
         <div class="score-sheet-wrapper">
@@ -111,13 +111,16 @@
             </tbody>
         </table>
         </div>
-
-        <div class="actions">
-            <button type="submit" class="btn btn-success">Punkte speichern</button>
-            <a href="{% url 'game_finish' game.pk %}" class="btn btn-success" onclick="return confirm('Spiel #{{ game.id }} wirklich beenden? Danach können keine Punkte mehr eingetragen werden.')">Spiel beenden</a>
-            <a href="{% url 'game_detail' game.pk %}" class="btn btn-secondary">Zurück</a>
-        </div>
     </form>
+
+    <div class="actions">
+        <button type="submit" class="btn btn-success" form="score-form">Punkte speichern</button>
+        <form method="post" action="{% url 'game_finish' game.pk %}" onsubmit="return confirm('Spiel #{{ game.id }} wirklich beenden? Danach können keine Punkte mehr eingetragen werden.')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">Spiel beenden</button>
+        </form>
+        <a href="{% url 'game_detail' game.pk %}" class="btn btn-secondary">Zurück</a>
+    </div>
 </div>
 
 <style>

@@ -91,7 +91,21 @@
         .btn-danger:hover { background: #c0392b; }
         .btn-success { background: #27ae60; }
         .btn-success:hover { background: #1e8449; }
+        .btn-link {
+            background: none;
+            border: none;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
+            text-decoration: none;
+            padding: 0.5rem 0.9rem;
+            border-radius: 4px;
+        }
         .actions { margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .actions form { display: inline; margin: 0; }
+        .actions form button {
+            font-size: 0.95rem;
+        }
         .messages { margin-bottom: 1rem; }
         .messages li {
             padding: 0.6rem 1rem;
