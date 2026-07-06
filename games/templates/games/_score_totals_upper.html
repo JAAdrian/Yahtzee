@@ -1,0 +1,12 @@
+    <tr class="sum-row">
+        <td>Summe Oben</td>
+        {% for gp in players %}
+            <td>{{ gp.upper_sum }}</td>
+        {% endfor %}
+    </tr>
+    <tr class="bonus-row">
+        <td>Bonus (≥63 → +35)</td>
+        {% for gp in players %}
+            <td class="{% if gp.bonus > 0 %}bonus-achieved{% else %}bonus-missed{% endif %}">{{ gp.bonus }}</td>
+        {% endfor %}
+    </tr>

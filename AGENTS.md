@@ -7,7 +7,7 @@ Compact reference for OpenCode sessions working on this Django project.
 - Single Django 6 app, SQLite by default, German-language UI (de-de / Europe/Berlin).
 - Apps: `users` (Player CRUD), `games` (Game, GamePlayer, ScoreEntry models + scoring logic).
 - Root URL redirects to `/games/`; admin lives at `/admin/`.
-- No JS framework; plain Django templates under `templates/` and per-app template dirs.
+- HTMX (loaded from CDN) for reactive scoring; otherwise plain Django templates.
 
 ## Environment
 
@@ -21,7 +21,7 @@ Compact reference for OpenCode sessions working on this Django project.
 Use `.venv/bin/python manage.py <cmd>` or activate the venv first:
 
 - Run dev server: `python manage.py runserver` → http://127.0.0.1:8000/
-- Run tests: `python manage.py test` (23 tests across `users/tests.py`, `games/tests.py`)
+- Run tests: `python manage.py test` (28 tests across `users/tests.py`, `games/tests.py`)
 - Run one app’s tests: `python manage.py test games` or `python manage.py test users`
 - Apply migrations: `python manage.py migrate`
 - Create admin user: `python manage.py createsuperuser`
@@ -38,6 +38,7 @@ Make shortcuts (verify `GITHUB_USER` / `GITHUB_TOKEN` / `REMOTE_HOST` / `REMOTE_
 - `game_score` view POST handles both numeric categories and fixed-category state dropdowns. Field names in HTML must be:
   - Numeric: `score_<gameplayer_id>_<category>`
   - Fixed state: `state_<gameplayer_id>_<category>` (values: `empty`, `filled`, `stricken`)
+- `game_score_partial` is an HTMX endpoint that saves a single changed entry on `change` and returns updated total rows (`#upper-totals` and `#lower-totals` via `hx-swap-oob`).
 - `GamePlayer.total_score` is computed on the fly from `ScoreEntry` rows; there is no denormalized total field.
 - Creating/editing/deleting players and games is restricted to authenticated users via `@login_required`; lists and detail/result/leaderboard views remain public.
 - Leaderboard counts wins by checking whether a player ranked first in each completed game.
