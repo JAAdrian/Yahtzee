@@ -42,10 +42,36 @@ def game_list(request):
 @login_required
 def game_create(request):
     if request.method == "POST":
+        player_ids = request.POST.getlist("players")
         game = Game.objects.create()
-        messages.success(request, f"Spiel #{game.id} wurde gestartet.")
+        added = 0
+        for pid in player_ids:
+            try:
+                player = Player.objects.get(pk=int(pid))
+                GamePlayer.objects.create(game=game, player=player)
+                added += 1
+            except (ValueError, Player.DoesNotExist):
+                continue
+
+        if added:
+            messages.success(
+                request, f"Spiel #{game.id} wurde mit {added} Spielern gestartet."
+            )
+            return HttpResponseRedirect(reverse("game_score", kwargs={"pk": game.pk}))
+
+        messages.info(
+            request,
+            f"Spiel #{game.id} wurde gestartet. Wähle mindestens einen Spieler, "
+            "um Punkte einzutragen.",
+        )
         return HttpResponseRedirect(game.get_absolute_url())
-    return render(request, "games/game_create.html")
+
+    available_players = Player.objects.order_by("name")
+    return render(
+        request,
+        "games/game_create.html",
+        {"available_players": available_players},
+    )
 
 
 def game_detail(request, pk):
