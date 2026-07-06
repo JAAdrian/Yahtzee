@@ -27,6 +27,7 @@ console_command = "/app/manage.py shell"
   PORT = "8000"
   PYTHONDONTWRITEBYTECODE = "1"
   PYTHONUNBUFFERED = "1"
+  ADMIN_URL = "hansvonwurst"
 
 [[mounts]]
   source = "kniffel_data"

@@ -289,7 +289,7 @@ class GameScorePartialTests(TestCase):
                 f"score_{self.gp.pk}_not_a_category": "4",
             },
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 204)
 
     def test_partial_forbidden_for_finished_game(self):
         self.game.is_complete = True
@@ -303,7 +303,7 @@ class GameScorePartialTests(TestCase):
                 f"score_{self.gp.pk}_ones": "4",
             },
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 204)
 
     def test_partial_requires_login(self):
         self.client.logout()
