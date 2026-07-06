@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils import timezone
@@ -57,7 +57,9 @@ def game_detail(request, pk):
 def game_add_player(request, pk):
     game = get_object_or_404(Game, pk=pk)
     if game.is_complete:
-        messages.error(request, "Abgeschlossene Spiele können nicht mehr bearbeitet werden.")
+        messages.error(
+            request, "Abgeschlossene Spiele können nicht mehr bearbeitet werden."
+        )
         return HttpResponseRedirect(game.get_absolute_url())
 
     if request.method == "POST":
@@ -69,7 +71,9 @@ def game_add_player(request, pk):
             for pid in player_ids:
                 try:
                     player = Player.objects.get(pk=int(pid))
-                    _, created = GamePlayer.objects.get_or_create(game=game, player=player)
+                    _, created = GamePlayer.objects.get_or_create(
+                        game=game, player=player
+                    )
                     if created:
                         added += 1
                 except (ValueError, Player.DoesNotExist):
@@ -77,7 +81,9 @@ def game_add_player(request, pk):
             if added:
                 messages.success(request, f"{added} Spieler hinzugefügt.")
             else:
-                messages.info(request, "Alle ausgewählten Spieler sind bereits im Spiel.")
+                messages.info(
+                    request, "Alle ausgewählten Spieler sind bereits im Spiel."
+                )
             return HttpResponseRedirect(game.get_absolute_url())
 
     already_in = set(gp.player_id for gp in game.game_players.all())
@@ -135,10 +141,14 @@ def _parse_score_entry(entry, raw_value, raw_state):
 def game_score(request, pk):
     game = get_object_or_404(Game, pk=pk)
     if game.is_complete:
-        messages.error(request, "Abgeschlossene Spiele können nicht mehr bearbeitet werden.")
+        messages.error(
+            request, "Abgeschlossene Spiele können nicht mehr bearbeitet werden."
+        )
         return HttpResponseRedirect(game.get_absolute_url())
 
-    players = list(game.game_players.select_related("player").prefetch_related("scores"))
+    players = list(
+        game.game_players.select_related("player").prefetch_related("scores")
+    )
     if not players:
         messages.error(request, "Füge zuerst Spieler zum Spiel hinzu.")
         return HttpResponseRedirect(game.get_absolute_url())
@@ -147,7 +157,9 @@ def game_score(request, pk):
         _ensure_score_entries(gp)
 
     # Re-fetch so that prefetched scores include all newly created rows.
-    players = list(game.game_players.select_related("player").prefetch_related("scores"))
+    players = list(
+        game.game_players.select_related("player").prefetch_related("scores")
+    )
 
     if request.method == "POST":
         entries_to_create = []
@@ -172,7 +184,9 @@ def game_score(request, pk):
                     )
                     # Re-fetch so the template sees current data including new rows.
                     players = list(
-                        game.game_players.select_related("player").prefetch_related("scores")
+                        game.game_players.select_related("player").prefetch_related(
+                            "scores"
+                        )
                     )
                     return render(
                         request,
@@ -180,7 +194,8 @@ def game_score(request, pk):
                         {
                             "game": game,
                             "players": players,
-                            "categories": SCORE_SHEET_ORDER,
+                            "upper_categories": ScoreEntry.UPPER_SECTION_CATEGORIES,
+                            "lower_categories": ScoreEntry.LOWER_SECTION_CATEGORIES,
                             "fixed_points": ScoreEntry.FIXED_POINTS,
                         },
                     )
@@ -197,14 +212,61 @@ def game_score(request, pk):
         return HttpResponseRedirect(game.get_absolute_url())
 
     # Re-fetch after ensuring rows exist.
-    players = list(game.game_players.select_related("player").prefetch_related("scores"))
+    players = list(
+        game.game_players.select_related("player").prefetch_related("scores")
+    )
     return render(
         request,
         "games/game_score.html",
         {
             "game": game,
             "players": players,
-            "categories": SCORE_SHEET_ORDER,
+            "upper_categories": ScoreEntry.UPPER_SECTION_CATEGORIES,
+            "lower_categories": ScoreEntry.LOWER_SECTION_CATEGORIES,
+            "fixed_points": ScoreEntry.FIXED_POINTS,
+        },
+    )
+
+
+@login_required
+def game_score_partial(request, pk):
+    """Save one score entry from an HTMX request and return updated totals."""
+    game = get_object_or_404(Game, pk=pk)
+    if game.is_complete:
+        return HttpResponseBadRequest(
+            "Abgeschlossene Spiele können nicht bearbeitet werden."
+        )
+
+    gp = get_object_or_404(GamePlayer, pk=request.POST.get("game_player_id"), game=game)
+    category = request.POST.get("category")
+    if category not in {cat.value for cat in SCORE_SHEET_ORDER}:
+        return HttpResponseBadRequest("Ungültige Kategorie.")
+
+    _ensure_score_entries(gp)
+    entry = gp.scores.get(category=category)
+
+    value_field = f"score_{gp.pk}_{category}"
+    state_field = f"state_{gp.pk}_{category}"
+    raw_value = request.POST.get(value_field, "").strip()
+    raw_state = request.POST.get(state_field, "").strip()
+
+    if not _parse_score_entry(entry, raw_value, raw_state):
+        return HttpResponseBadRequest(
+            f"Ungültiger Wert bei {gp.player.name} / {ScoreEntry.Category(category).label}."
+        )
+
+    entry.save(update_fields=["value", "state"])
+
+    return render(
+        request,
+        "games/game_score_partial.html",
+        {
+            "game": game,
+            "players": list(
+                game.game_players.select_related("player").prefetch_related("scores")
+            ),
+            "upper_categories": ScoreEntry.UPPER_SECTION_CATEGORIES,
+            "lower_categories": ScoreEntry.LOWER_SECTION_CATEGORIES,
             "fixed_points": ScoreEntry.FIXED_POINTS,
         },
     )
@@ -246,7 +308,9 @@ def leaderboard(request):
     for player in players:
         wins = 0
         games_played = player.game_entries.filter(game__is_complete=True).count()
-        for gp in player.game_entries.filter(game__is_complete=True).prefetch_related("game__game_players"):
+        for gp in player.game_entries.filter(game__is_complete=True).prefetch_related(
+            "game__game_players"
+        ):
             ranked = gp.game.ranked_players()
             if ranked and ranked[0].pk == gp.pk:
                 wins += 1

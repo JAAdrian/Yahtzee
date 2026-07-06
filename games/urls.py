@@ -10,6 +10,9 @@ urlpatterns = [
     path("<int:pk>/delete/", views.game_delete, name="game_delete"),
     path("<int:pk>/add-player/", views.game_add_player, name="game_add_player"),
     path("<int:pk>/score/", views.game_score, name="game_score"),
+    path(
+        "<int:pk>/score/partial/", views.game_score_partial, name="game_score_partial"
+    ),
     path("<int:pk>/finish/", views.game_finish, name="game_finish"),
     path("<int:pk>/results/", views.game_results, name="game_results"),
 ]
