@@ -114,6 +114,7 @@
 
         <div class="actions">
             <button type="submit" class="btn btn-success">Punkte speichern</button>
+            <a href="{% url 'game_finish' game.pk %}" class="btn btn-success" onclick="return confirm('Spiel #{{ game.id }} wirklich beenden? Danach können keine Punkte mehr eingetragen werden.')">Spiel beenden</a>
             <a href="{% url 'game_detail' game.pk %}" class="btn btn-secondary">Zurück</a>
         </div>
     </form>
