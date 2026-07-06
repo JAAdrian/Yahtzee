@@ -1,0 +1,12 @@
+    <tr class="sum-row">
+        <td>Summe Unten</td>
+        {% for gp in players %}
+            <td>{{ gp.lower_sum }}</td>
+        {% endfor %}
+    </tr>
+    <tr class="total-row">
+        <td>Gesamt</td>
+        {% for gp in players %}
+            <td>{{ gp.total_score }}</td>
+        {% endfor %}
+    </tr>

@@ -179,7 +179,9 @@ class GameViewTests(TestCase):
         game = Game.objects.create()
         response = self.client.post(reverse("game_finish", kwargs={"pk": game.pk}))
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.url.endswith(reverse("game_results", kwargs={"pk": game.pk})))
+        self.assertTrue(
+            response.url.endswith(reverse("game_results", kwargs={"pk": game.pk}))
+        )
         game.refresh_from_db()
         self.assertTrue(game.is_complete)
 
@@ -209,3 +211,86 @@ class GameViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Alice")
         self.assertContains(response, "Bob")
+
+
+class GameScorePartialTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username="testuser", password="testpass")
+        self.client.force_login(self.user)
+        self.game = Game.objects.create()
+        self.alice = Player.objects.create(name="Alice")
+        self.gp = GamePlayer.objects.create(game=self.game, player=self.alice)
+
+    def _partial_url(self):
+        return reverse("game_score_partial", kwargs={"pk": self.game.pk})
+
+    def test_partial_saves_numeric_value_and_returns_totals(self):
+        url = self._partial_url()
+        response = self.client.post(
+            url,
+            {
+                "game_player_id": self.gp.pk,
+                "category": "ones",
+                f"score_{self.gp.pk}_ones": "4",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.gp.refresh_from_db()
+        self.assertEqual(self.gp.total_score, 4)
+        self.assertContains(response, "Summe Oben")
+        self.assertContains(response, "Gesamt")
+
+    def test_partial_saves_fixed_category_state(self):
+        url = self._partial_url()
+        response = self.client.post(
+            url,
+            {
+                "game_player_id": self.gp.pk,
+                "category": "full_house",
+                f"state_{self.gp.pk}_full_house": "filled",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.gp.refresh_from_db()
+        self.assertEqual(self.gp.lower_sum, 25)
+        self.assertContains(response, "Summe Unten")
+
+    def test_partial_rejects_invalid_category(self):
+        url = self._partial_url()
+        response = self.client.post(
+            url,
+            {
+                "game_player_id": self.gp.pk,
+                "category": "not_a_category",
+                f"score_{self.gp.pk}_not_a_category": "4",
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_partial_forbidden_for_finished_game(self):
+        self.game.is_complete = True
+        self.game.save()
+        url = self._partial_url()
+        response = self.client.post(
+            url,
+            {
+                "game_player_id": self.gp.pk,
+                "category": "ones",
+                f"score_{self.gp.pk}_ones": "4",
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_partial_requires_login(self):
+        self.client.logout()
+        url = self._partial_url()
+        response = self.client.post(
+            url,
+            {
+                "game_player_id": self.gp.pk,
+                "category": "ones",
+                f"score_{self.gp.pk}_ones": "4",
+            },
+        )
+        self.assertEqual(response.status_code, 302)

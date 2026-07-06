@@ -107,6 +107,11 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# --- Authentication redirects -----------------------------------------------
+
+LOGIN_REDIRECT_URL = "/games/"
+LOGOUT_REDIRECT_URL = "/games/"
+
 # --- Internationalization ---------------------------------------------------
 
 LANGUAGE_CODE = "de-de"
