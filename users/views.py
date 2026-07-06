@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from django_ratelimit.decorators import ratelimit
 
 from .models import Player
 
@@ -13,11 +14,14 @@ def player_list(request):
 
 
 @login_required
+@ratelimit(key="user_or_ip", rate="10/m", method=["POST"])
 def player_create(request):
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
         if name:
-            player, created = Player.objects.get_or_create(name__iexact=name, defaults={"name": name})
+            player, created = Player.objects.get_or_create(
+                name__iexact=name, defaults={"name": name}
+            )
             if created:
                 messages.success(request, f"Spieler '{player.name}' wurde angelegt.")
             else:
@@ -33,6 +37,7 @@ def player_detail(request, pk):
 
 
 @login_required
+@ratelimit(key="user_or_ip", rate="10/m", method=["POST"])
 def player_update(request, pk):
     player = get_object_or_404(Player, pk=pk)
     if request.method == "POST":
@@ -41,12 +46,15 @@ def player_update(request, pk):
             player.name = name
             player.save()
             messages.success(request, f"Spieler '{player.name}' wurde aktualisiert.")
-            return HttpResponseRedirect(reverse("player_detail", kwargs={"pk": player.pk}))
+            return HttpResponseRedirect(
+                reverse("player_detail", kwargs={"pk": player.pk})
+            )
         messages.error(request, "Bitte einen Namen eingeben.")
     return render(request, "users/player_form.html", {"player": player})
 
 
 @login_required
+@ratelimit(key="user_or_ip", rate="20/m", method=["POST"])
 def player_delete(request, pk):
     player = get_object_or_404(Player, pk=pk)
     if request.method == "POST":

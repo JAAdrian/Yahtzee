@@ -3,3 +3,5 @@ asgiref
 sqlparse
 gunicorn
 whitenoise
+python-dotenv==1.1.0
+django-ratelimit==4.1.0
