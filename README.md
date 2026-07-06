@@ -5,9 +5,10 @@ Ein kleiner Django-Service, um mit Freunden im echten Leben Kniffel (Yahtzee) zu
 ## Features
 
 - **Spielerverwaltung**: Spieler anlegen, bearbeiten und löschen.
-- **Spiele anlegen**: Neue Runden starten und Spieler hinzufügen.
+- **Spiele anlegen**: Neue Runden starten und direkt Teilnehmer auswählen.
 - **Digitaler Kniffel-Block**: Alle 13 Kategorien inklusive Bonus (≥63 Oberer Teil → +35 Punkte).
 - **Feste untere Kategorien**: Full House, Kleine Straße, Große Straße und Kniffel können als „Gewürfelt" oder „Gestrichen" markiert werden.
+- **Reaktives Speichern**: Punkte werden bei jeder Eingabe automatisch gespeichert, die Summen aktualisieren sich sofort.
 - **Spiel beenden**: Punkte werden gespeichert, Gewinner ermittelt.
 - **Ewige Liste**: Rangliste der Spieler nach gewonnenen Spielen.
 
@@ -36,10 +37,18 @@ Ein kleiner Django-Service, um mit Freunden im echten Leben Kniffel (Yahtzee) zu
 3. Abhängigkeiten installieren:
 
    ```bash
-   pip install django==6.0.6
+   pip install -r requirements.txt
    ```
 
-4. Migrationen anwenden:
+4. Lokale Umgebungsvariablen anlegen:
+
+   ```bash
+   python -c "import secrets; print(f'SECRET_KEY={secrets.token_urlsafe(50)}\nDEBUG=True')" > .env
+   ```
+
+   `.env` ist bereits in `.gitignore` eingetragen und wird vom Entwicklungsserver automatisch geladen.
+
+5. Migrationen anwenden:
 
    ```bash
    python manage.py migrate
@@ -58,11 +67,10 @@ Die App ist dann unter `http://127.0.0.1:8000/` erreichbar.
 ### Ablauf
 
 1. **Spieler anlegen**: Über *Spieler → Neuer Spieler* Teilnehmer erfassen.
-2. **Spiel starten**: Über *Spiele → Neues Spiel starten* eine neue Runde anlegen.
-3. **Spieler hinzufügen**: Im Spiel auf *Spieler hinzufügen* klicken und Teilnehmer auswählen.
-4. **Punkte eintragen**: *Punkte eintragen* öffnet den digitalen Kniffel-Block. Einfach die Werte pro Spieler und Kategorie eingeben und speichern.
-5. **Spiel beenden**: Wenn alles eingetragen ist, auf *Spiel beenden* klicken. Die Ergebnisse werden festgeschrieben.
-6. **Ewige Liste**: Unter *Ewige Liste* siehst du, wer die meisten Spiele gewonnen hat.
+2. **Spiel starten**: Über *Spiele → Neues Spiel starten* eine neue Runde anlegen und direkt die Teilnehmer auswählen.
+3. **Punkte eintragen**: Der digitale Kniffel-Block öffnet sich automatisch. Werte pro Spieler und Kategorie eingeben – Summen werden sofort aktualisiert.
+4. **Spiel beenden**: Wenn alles eingetragen ist, auf *Spiel beenden* klicken. Die Ergebnisse werden festgeschrieben.
+5. **Ewige Liste**: Unter *Ewige Liste* siehst du, wer die meisten Spiele gewonnen hat.
 
 ### Admin-Oberfläche
 
@@ -80,9 +88,12 @@ Die Admin-Oberfläche ist unter `/admin/` erreichbar.
 python manage.py test
 ```
 
+Tests laufen ohne gesetzte `SECRET_KEY`-Umgebungsvariable, da sie intern einen Test-Key verwenden.
+
 ## Wichtige Hinweise
 
-- `SECRET_KEY` und `DEBUG=True` in `yahtzee_tracker/settings.py` sind für die lokale Entwicklung gedacht. Vor einem Deployment müssen beide angepasst werden.
+- Für die lokale Entwicklung werden `SECRET_KEY` und `DEBUG=True` aus der `.env`-Datei geladen.
+- Vor einem Deployment müssen `SECRET_KEY` als Umgebungsvariable gesetzt und `DEBUG=False` sein. Die App verweigert den Start, wenn kein `SECRET_KEY` konfiguriert ist.
 - Für ein Production-Deployment mit Docker sollte die SQLite-Datenbank (`db.sqlite3`) in ein persistentes Volume ausgelagert werden, damit die Daten bei Container-Neustarts erhalten bleiben.
 - Für hohe Last oder mehrere Container-Instanzen empfiehlt sich ein Wechsel von SQLite zu PostgreSQL.
 
@@ -142,71 +153,27 @@ Da die Datenbank im Docker-Volume liegt, solltest du sie regelmäßig sichern:
 docker compose cp app:/app/data/db.sqlite3 ./backup/kniffel-$(date +%F).sqlite3
 ```
 
-## Deployment mit GitHub Container Registry (GHCR)
+## Deployment mit Fly.io
 
-Ein `Makefile` vereinfacht das Bauen, Pushen und Deployen des Images.
+Die App kann auch direkt auf Fly.io deployt werden. Eine `fly.toml` liegt im Repository.
 
-### Voraussetzungen
-
-- Ein GitHub Account mit einem Personal Access Token (PAT), das mindestens die Berechtigung `write:packages` hat.
-- Das Token in der Umgebungsvariable `GITHUB_TOKEN` verfügbar machen.
-- Deinen GitHub-Username in der Umgebungsvariable `GITHUB_USER` setzen.
-- SSH-Zugriff auf den Zielserver, auf dem Docker Compose bereits eingerichtet ist.
-
-### Umgebungsvariablen setzen
+### Erstmaliges Setup
 
 ```bash
-export GITHUB_USER=your-github-username
-export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+fly apps create yahtzee
+fly volumes create kniffel_data --region ams --size 1
+fly secrets set SECRET_KEY="<generate-with-secrets.token_urlsafe(50)>" ALLOWED_HOSTS="yahtzee.fly.dev"
+fly scale count 1
+fly deploy
 ```
 
-### Makefile-Targets
+> Wichtig: SQLite kann nicht mehrere gleichzeitige Schreiber sicher verarbeiten. Halte die App deshalb auf **genau einer Machine** (`fly scale count 1`).
+
+### Update deployen
 
 ```bash
-make help          # Zeigt alle verfügbaren Targets
-make test          # Django-Tests lokal ausführen
-make build         # Docker-Image bauen
-make login         # Lokal bei GHCR.io anmelden
-make push          # Image nach GHCR.io pushen
-make push-latest   # Zusätzlich als 'latest' taggen und pushen
-make deploy        # Image auf dem Server pullen und Container neustarten
-make clean         # Lokales Image entfernen
+fly deploy --ha=false
 ```
-
-### Beispiel: vollständiges Build & Deploy
-
-```bash
-# 1. Tests laufen lassen
-make test
-
-# 2. Image bauen
-make build
-
-# 3. Bei GHCR.io anmelden und Image pushen
-make login
-make push
-make push-latest
-
-# 4. Auf Server deployen (Remote-Daten in Makefile anpassen oder übergeben)
-make deploy REMOTE_HOST=user@server.example.com REMOTE_DIR=/opt/kniffel-tracker
-```
-
-### Server-Vorbereitung für `make deploy`
-
-Auf dem Zielserver musst du mindestens einmalig bei GHCR.io eingeloggt sein, damit `docker pull` funktioniert:
-
-```bash
-ssh user@server.example.com
-echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USER --password-stdin
-```
-
-Außerdem sollte `docker-compose.yml` und ggf. eine `.env`-Datei bereits unter `REMOTE_DIR` liegen.
-
-### Hinweise zum Docker-Setup
-
-- Das Entrypoint-Skript `docker-entrypoint.sh` führt beim Start automatisch `python manage.py migrate` aus.
-- Für Produktion wird `Gunicorn` als WSGI-Server verwendet, nicht der Django-Entwicklungsserver.
-- Passe vor dem Deployment unbedingt `SECRET_KEY`, `DEBUG=False` und `ALLOWED_HOSTS` an.
 
 ## Projektstruktur
 
@@ -214,3 +181,4 @@ Außerdem sollte `docker-compose.yml` und ggf. eine `.env`-Datei bereits unter `
 - `users/` – `Player`-Modell und Spieler-CRUD.
 - `games/` – `Game`, `GamePlayer`, `ScoreEntry`-Modelle, Spiel-Logik und Templates.
 - `templates/` – Gemeinsame Templates (Base-Layout).
+- `AGENTS.md` – Interne Notizen für Entwicklungs-Assistenten.

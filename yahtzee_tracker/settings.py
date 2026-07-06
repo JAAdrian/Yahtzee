@@ -7,9 +7,15 @@ import sys
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load a local .env file for development. On Fly.io there is no .env file and
+# secrets come from the environment directly.
+if os.path.exists(BASE_DIR / ".env"):
+    load_dotenv(BASE_DIR / ".env")
 
 
 # --- Security settings ------------------------------------------------------
