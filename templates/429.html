@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Zu viele Anfragen - Kniffel Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Zu viele Anfragen</h2>
+    <p>Du hast in kurzer Zeit zu viele Anfragen gesendet. Bitte warte einen Moment und versuche es dann erneut.</p>
+    <div class="actions">
+        <a href="{% url 'game_list' %}" class="btn btn-secondary">Zurück zur Übersicht</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,10 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import HttpResponseBadRequest, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils import timezone
+from django_ratelimit.decorators import ratelimit
 
 from users.models import Player
 
@@ -40,6 +41,7 @@ def game_list(request):
 
 
 @login_required
+@ratelimit(key="user_or_ip", rate="10/m", method=["POST"])
 def game_create(request):
     if request.method == "POST":
         player_ids = request.POST.getlist("players")
@@ -80,6 +82,7 @@ def game_detail(request, pk):
 
 
 @login_required
+@ratelimit(key="user_or_ip", rate="20/m", method=["POST"])
 def game_add_player(request, pk):
     game = get_object_or_404(Game, pk=pk)
     if game.is_complete:
@@ -255,18 +258,21 @@ def game_score(request, pk):
 
 
 @login_required
+@ratelimit(key="user_or_ip", rate="120/m", method=["POST"])
 def game_score_partial(request, pk):
     """Save one score entry from an HTMX request and return updated totals."""
     game = get_object_or_404(Game, pk=pk)
     if game.is_complete:
-        return HttpResponseBadRequest(
-            "Abgeschlossene Spiele können nicht bearbeitet werden."
+        messages.error(
+            request, "Abgeschlossene Spiele können nicht mehr bearbeitet werden."
         )
+        return HttpResponse(status=204)
 
     gp = get_object_or_404(GamePlayer, pk=request.POST.get("game_player_id"), game=game)
     category = request.POST.get("category")
     if category not in {cat.value for cat in SCORE_SHEET_ORDER}:
-        return HttpResponseBadRequest("Ungültige Kategorie.")
+        messages.error(request, "Ungültige Kategorie.")
+        return HttpResponse(status=204)
 
     _ensure_score_entries(gp)
     entry = gp.scores.get(category=category)
@@ -277,9 +283,11 @@ def game_score_partial(request, pk):
     raw_state = request.POST.get(state_field, "").strip()
 
     if not _parse_score_entry(entry, raw_value, raw_state):
-        return HttpResponseBadRequest(
-            f"Ungültiger Wert bei {gp.player.name} / {ScoreEntry.Category(category).label}."
+        messages.error(
+            request,
+            f"Ungültiger Wert bei {gp.player.name} / {ScoreEntry.Category(category).label}.",
         )
+        return HttpResponse(status=204)
 
     entry.save(update_fields=["value", "state"])
 
@@ -299,9 +307,10 @@ def game_score_partial(request, pk):
 
 
 @login_required
+@ratelimit(key="user_or_ip", rate="20/m", method=["POST"])
 def game_finish(request, pk):
     game = get_object_or_404(Game, pk=pk)
-    if request.method in ("POST", "GET"):
+    if request.method == "POST":
         with transaction.atomic():
             game.is_complete = True
             game.finished_at = timezone.now()
@@ -312,6 +321,7 @@ def game_finish(request, pk):
 
 
 @login_required
+@ratelimit(key="user_or_ip", rate="20/m", method=["POST"])
 def game_delete(request, pk):
     game = get_object_or_404(Game, pk=pk)
     if request.method == "POST":

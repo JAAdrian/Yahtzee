@@ -6,7 +6,9 @@ Compact reference for OpenCode sessions working on this Django project.
 
 - Single Django 6 app, SQLite by default, German-language UI (de-de / Europe/Berlin).
 - Apps: `users` (Player CRUD), `games` (Game, GamePlayer, ScoreEntry models + scoring logic).
-- Root URL redirects to `/games/`; admin lives at `/admin/`.
+- Root URL redirects to `/games/`; admin path is configurable via `ADMIN_URL` env var (default `/admin/`).
+- Production responses include a Content-Security-Policy header; HTMX is served from `static/js/htmx.min.js` so `script-src 'self'` is sufficient.
+- Mutating views are protected by `django-ratelimit` (admin login, game/player CRUD, score partial endpoint). Limits are generous enough for normal play.
 - HTMX (loaded from CDN) for reactive scoring; otherwise plain Django templates.
 
 ## Environment
@@ -14,14 +16,16 @@ Compact reference for OpenCode sessions working on this Django project.
 - Target Python: **3.14.6** (declared in `.tool-versions`).
 - A local `.venv/` already exists and should be used.
 - Activate: `source .venv/bin/activate` or use `.venv/bin/python` directly.
-- Dependencies: `requirements.txt` pins `django==6.0.6`, `gunicorn`, and `whitenoise`.
+- Dependencies: `requirements.txt` pins `django==6.0.6`, `gunicorn`, `whitenoise`, `python-dotenv`, and `django-ratelimit`.
+- For local development, create a `.env` file with `SECRET_KEY=...` and `DEBUG=True`. The file is gitignored and loaded automatically.
+- HTMX is vendored in `static/js/htmx.min.js`; no CDN dependency at runtime.
 
 ## Common Commands
 
 Use `.venv/bin/python manage.py <cmd>` or activate the venv first:
 
 - Run dev server: `python manage.py runserver` → http://127.0.0.1:8000/
-- Run tests: `python manage.py test` (30 tests across `users/tests.py`, `games/tests.py`)
+- Run tests: `python manage.py test` (30 tests across `users/tests.py`, `games/tests.py`). Tests use an internal test-only `SECRET_KEY`, so no env var is needed locally.
 - Run one app’s tests: `python manage.py test games` or `python manage.py test users`
 - Apply migrations: `python manage.py migrate`
 - Create admin user: `python manage.py createsuperuser`
@@ -100,7 +104,8 @@ python /app/manage.py createsuperuser
 
 ## Things That Are Easy to Miss
 
-- `DEBUG` defaults to `True` and `SECRET_KEY` falls back to a hardcoded dev key when env vars are absent. Do not rely on these defaults for any deployment.
+- `SECRET_KEY` is required; the app raises `ImproperlyConfigured` if it is missing. Tests use an internal test-only key.
+- `DEBUG` defaults to `False` when unset. Use `DEBUG=True` in `.env` for local development only.
 - `ALLOWED_HOSTS` is empty in debug mode and `localhost/127.0.0.1` in production mode if not explicitly set.
 - Player names are unique case-insensitively (`Player.name` is unique at DB level; the view normalizes duplicates via lowercase comparison).
 - The `.gitignore` explicitly ignores `AGENTS.md`; if you edit this file, stage it manually with `git add -f AGENTS.md`.

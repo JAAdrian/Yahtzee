@@ -201,15 +201,12 @@ class GameViewTests(TestCase):
         game.refresh_from_db()
         self.assertTrue(game.is_complete)
 
-    def test_finish_game_accepts_get_with_confirmation(self):
+    def test_finish_game_requires_post(self):
         game = Game.objects.create()
         response = self.client.get(reverse("game_finish", kwargs={"pk": game.pk}))
-        self.assertEqual(response.status_code, 302)
-        self.assertTrue(
-            response.url.endswith(reverse("game_results", kwargs={"pk": game.pk}))
-        )
+        self.assertEqual(response.status_code, 200)
         game.refresh_from_db()
-        self.assertTrue(game.is_complete)
+        self.assertFalse(game.is_complete)
 
     def test_delete_game(self):
         game = Game.objects.create()
@@ -292,7 +289,7 @@ class GameScorePartialTests(TestCase):
                 f"score_{self.gp.pk}_not_a_category": "4",
             },
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 204)
 
     def test_partial_forbidden_for_finished_game(self):
         self.game.is_complete = True
@@ -306,7 +303,7 @@ class GameScorePartialTests(TestCase):
                 f"score_{self.gp.pk}_ones": "4",
             },
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 204)
 
     def test_partial_requires_login(self):
         self.client.logout()
