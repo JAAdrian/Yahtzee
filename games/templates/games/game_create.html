@@ -7,9 +7,23 @@
     <h2>Neues Spiel starten</h2>
     <form method="post">
         {% csrf_token %}
-        <p>Ein neues Spiel wird angelegt. Anschließend kannst du Spieler hinzufügen.</p>
+
+        {% if available_players %}
+            <p>Wähle die Spieler für das neue Spiel aus:</p>
+            <div class="form-row checkbox-list">
+                {% for player in available_players %}
+                    <label>
+                        <input type="checkbox" name="players" value="{{ player.pk }}">
+                        {{ player.name }}
+                    </label>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="small">Es gibt noch keine Spieler. <a href="{% url 'player_create' %}">Neuen Spieler anlegen</a>.</p>
+        {% endif %}
+
         <div class="actions">
-            <button type="submit" class="btn btn-success">Spiel starten</button>
+            <button type="submit" class="btn btn-success" {% if not available_players %}disabled{% endif %}>Spiel starten</button>
             <a href="{% url 'game_list' %}" class="btn btn-secondary">Abbrechen</a>
         </div>
     </form>

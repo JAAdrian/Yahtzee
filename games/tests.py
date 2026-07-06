@@ -108,10 +108,26 @@ class GameViewTests(TestCase):
         self.alice = Player.objects.create(name="Alice")
         self.bob = Player.objects.create(name="Bob")
 
-    def test_create_game(self):
+    def test_create_game_with_players_redirects_to_score_sheet(self):
+        response = self.client.post(
+            reverse("game_create"),
+            {"players": [self.alice.pk, self.bob.pk]},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Game.objects.count(), 1)
+        game = Game.objects.first()
+        self.assertEqual(game.game_players.count(), 2)
+        self.assertTrue(
+            response.url.endswith(reverse("game_score", kwargs={"pk": game.pk}))
+        )
+
+    def test_create_game_without_players_redirects_to_detail(self):
         response = self.client.post(reverse("game_create"))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Game.objects.count(), 1)
+        game = Game.objects.first()
+        self.assertEqual(game.game_players.count(), 0)
+        self.assertTrue(response.url.endswith(game.get_absolute_url()))
 
     def test_add_player_to_game(self):
         game = Game.objects.create()
@@ -178,6 +194,16 @@ class GameViewTests(TestCase):
     def test_finish_game_redirects_to_results(self):
         game = Game.objects.create()
         response = self.client.post(reverse("game_finish", kwargs={"pk": game.pk}))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            response.url.endswith(reverse("game_results", kwargs={"pk": game.pk}))
+        )
+        game.refresh_from_db()
+        self.assertTrue(game.is_complete)
+
+    def test_finish_game_accepts_get_with_confirmation(self):
+        game = Game.objects.create()
+        response = self.client.get(reverse("game_finish", kwargs={"pk": game.pk}))
         self.assertEqual(response.status_code, 302)
         self.assertTrue(
             response.url.endswith(reverse("game_results", kwargs={"pk": game.pk}))

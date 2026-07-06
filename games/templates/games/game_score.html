@@ -11,7 +11,8 @@
     <form method="post" action="{% url 'game_score' game.pk %}">
         {% csrf_token %}
 
-        <table class="score-sheet">
+        <div class="score-sheet-wrapper">
+            <table class="score-sheet">
             <thead>
                 <tr>
                     <th>Kategorie</th>
@@ -109,19 +110,64 @@
                 {% include "games/_score_totals_lower.html" %}
             </tbody>
         </table>
+        </div>
 
         <div class="actions">
             <button type="submit" class="btn btn-success">Punkte speichern</button>
+            <a href="{% url 'game_finish' game.pk %}" class="btn btn-success" onclick="return confirm('Spiel #{{ game.id }} wirklich beenden? Danach können keine Punkte mehr eingetragen werden.')">Spiel beenden</a>
             <a href="{% url 'game_detail' game.pk %}" class="btn btn-secondary">Zurück</a>
         </div>
     </form>
 </div>
 
 <style>
+    .score-sheet-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 1rem 0;
+    }
+    .score-sheet {
+        min-width: 100%;
+        table-layout: auto;
+    }
+    .score-sheet th:first-child,
+    .score-sheet td:first-child {
+        position: sticky;
+        left: 0;
+        background: #fff;
+        z-index: 1;
+        min-width: 140px;
+        box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+    }
+    .score-sheet th {
+        background: #f0f1f5;
+    }
+    .score-sheet input[type="number"],
+    .score-sheet select {
+        min-width: 80px;
+        max-width: 120px;
+    }
     .sum-row td, .sum-row th { background: #eef2f7; font-weight: bold; }
     .bonus-row td, .bonus-row th { font-weight: bold; }
     .bonus-achieved { color: #27ae60; background: #eafaf1 !important; }
     .bonus-missed { color: #c0392b; background: #fdecea !important; }
     select { min-width: 110px; }
+
+    @media (max-width: 700px) {
+        .score-sheet th:first-child,
+        .score-sheet td:first-child {
+            min-width: 120px;
+            font-size: 0.9rem;
+        }
+        .score-sheet th,
+        .score-sheet td {
+            padding: 0.45rem;
+        }
+        .score-sheet input[type="number"],
+        .score-sheet select {
+            font-size: 1rem;
+            padding: 0.4rem;
+        }
+    }
 </style>
 {% endblock %}
