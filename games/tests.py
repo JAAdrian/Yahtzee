@@ -305,6 +305,65 @@ class GameScorePartialTests(TestCase):
         )
         self.assertEqual(response.status_code, 204)
 
+    def test_admin_bulk_delete_action_available(self):
+        from django.contrib.admin.sites import site
+
+        self.user.is_staff = True
+        self.user.is_superuser = True
+        self.user.save()
+
+        ma = site._registry[Game]
+        request = self.client.request().wsgi_request
+        request.user = self.user
+        actions = ma.get_actions(request)
+        self.assertIn("delete_selected", actions)
+        self.assertIn("player_count", ma.list_display)
+
+    def test_admin_cleanup_orphaned_gameplayers(self):
+        from django.contrib.admin.sites import site
+
+        self.user.is_staff = True
+        self.user.is_superuser = True
+        self.user.save()
+
+        game = Game.objects.create()
+        gp = GamePlayer.objects.create(game=game, player=self.alice)
+        # Simulate an orphan by pointing the FK at a non-existing game.
+        GamePlayer.objects.filter(pk=gp.pk).update(game_id=999999)
+
+        self.assertEqual(GamePlayer.objects.filter(pk=gp.pk).count(), 1)
+
+        ma = site._registry[GamePlayer]
+        request = self.client.request().wsgi_request
+        request.user = self.user
+        ma.cleanup_orphaned_gameplayers(request, GamePlayer.objects.all())
+
+        self.assertEqual(GamePlayer.objects.filter(pk=gp.pk).count(), 0)
+
+    def test_admin_cleanup_orphaned_scoreentries(self):
+        from django.contrib.admin.sites import site
+
+        self.user.is_staff = True
+        self.user.is_superuser = True
+        self.user.save()
+
+        game = Game.objects.create()
+        gp = GamePlayer.objects.create(game=game, player=self.alice)
+        entry = ScoreEntry.objects.create(
+            game_player=gp, category=ScoreEntry.Category.ONES
+        )
+        # Simulate an orphan by pointing the FK at a non-existing game player.
+        ScoreEntry.objects.filter(pk=entry.pk).update(game_player_id=999999)
+
+        self.assertEqual(ScoreEntry.objects.filter(pk=entry.pk).count(), 1)
+
+        ma = site._registry[ScoreEntry]
+        request = self.client.request().wsgi_request
+        request.user = self.user
+        ma.cleanup_orphaned_scoreentries(request, ScoreEntry.objects.all())
+
+        self.assertEqual(ScoreEntry.objects.filter(pk=entry.pk).count(), 0)
+
     def test_partial_requires_login(self):
         self.client.logout()
         url = self._partial_url()
