@@ -45,7 +45,10 @@ if not DEBUG and any("." in host for host in ALLOWED_HOSTS):
 
 # Production-only HTTPS hardening. Skip SSL redirect during tests so the test
 # client does not get 301'd to HTTPS on every request.
-if not DEBUG and not IS_TESTING:
+# Only enable if a real production host (with a dot in the name) is configured,
+# so local dev on localhost/127.0.0.1 is never redirected to HTTPS.
+_is_production = not DEBUG and not IS_TESTING and any("." in host for host in ALLOWED_HOSTS)
+if _is_production:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -61,12 +64,11 @@ ADMIN_URL = os.environ.get("ADMIN_URL", "admin/")
 if not ADMIN_URL.endswith("/"):
     ADMIN_URL = f"{ADMIN_URL}/"
 
-# Content Security Policy. HTMX is vendored in static/js, so script-src only needs
-# 'self'. Inline styles and event handlers still require 'unsafe-inline'.
+# Content Security Policy.
 CSP_HEADER = "; ".join(
     [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline'",
+        "script-src 'self'",
         "style-src 'self' 'unsafe-inline'",
         "connect-src 'self'",
         "form-action 'self'",
@@ -201,6 +203,7 @@ USE_TZ = True
 # --- Static files -----------------------------------------------------------
 
 STATIC_URL = "static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 

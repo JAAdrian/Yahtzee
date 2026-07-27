@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% load games_extras %}
+{% load static games_extras %}
 
 {% block title %}Punkte eintragen - Spiel #{{ game.id }}{% endblock %}
 
 {% block content %}
 <div class="card">
     <h2>Punkte eintragen – Spiel #{{ game.id }}</h2>
-    <p class="small">Trage für jede Kategorie und jeden Spieler die erzielten Punkte ein. Bei festen Kategorien wähle „Gewürfelt“ oder „Gestrichen“. Änderungen werden automatisch gespeichert.</p>
+    <p class="small">Trage für jede Kategorie und jeden Spieler die erzielten Punkte ein. Bei festen Kategorien wähle „Gewürfelt" oder „Gestrichen".</p>
 
     <form id="score-form" method="post" action="{% url 'game_score' game.pk %}">
         {% csrf_token %}
@@ -32,11 +32,8 @@
                                     {% if category in fixed_points %}
                                         <select
                                             name="state_{{ gp.pk }}_{{ category.value }}"
-                                            hx-post="{% url 'game_score_partial' game.pk %}"
-                                            hx-trigger="change"
-                                            hx-target="#upper-totals"
-                                            hx-swap="outerHTML"
-                                            hx-vals='{"game_player_id": "{{ gp.pk }}", "category": "{{ category.value }}"}'
+                                            data-game-player="{{ gp.pk }}"
+                                            data-category="{{ category.value }}"
                                         >
                                             <option value="" {% if not entry or entry.is_empty %}selected{% endif %}>—</option>
                                             <option value="filled" {% if entry and entry.is_filled %}selected{% endif %}>Gewürfelt</option>
@@ -48,11 +45,8 @@
                                             name="score_{{ gp.pk }}_{{ category.value }}"
                                             min="0"
                                             value="{% if entry and entry.is_filled %}{{ entry.value|default:'' }}{% endif %}"
-                                            hx-post="{% url 'game_score_partial' game.pk %}"
-                                            hx-trigger="change"
-                                            hx-target="#upper-totals"
-                                            hx-swap="outerHTML"
-                                            hx-vals='{"game_player_id": "{{ gp.pk }}", "category": "{{ category.value }}"}'
+                                            data-game-player="{{ gp.pk }}"
+                                            data-category="{{ category.value }}"
                                         >
                                     {% endif %}
                                 </td>
@@ -76,11 +70,8 @@
                                     {% if category in fixed_points %}
                                         <select
                                             name="state_{{ gp.pk }}_{{ category.value }}"
-                                            hx-post="{% url 'game_score_partial' game.pk %}"
-                                            hx-trigger="change"
-                                            hx-target="#lower-totals"
-                                            hx-swap="outerHTML"
-                                            hx-vals='{"game_player_id": "{{ gp.pk }}", "category": "{{ category.value }}"}'
+                                            data-game-player="{{ gp.pk }}"
+                                            data-category="{{ category.value }}"
                                         >
                                             <option value="" {% if not entry or entry.is_empty %}selected{% endif %}>—</option>
                                             <option value="filled" {% if entry and entry.is_filled %}selected{% endif %}>Gewürfelt</option>
@@ -92,11 +83,8 @@
                                             name="score_{{ gp.pk }}_{{ category.value }}"
                                             min="0"
                                             value="{% if entry and entry.is_filled %}{{ entry.value|default:'' }}{% endif %}"
-                                            hx-post="{% url 'game_score_partial' game.pk %}"
-                                            hx-trigger="change"
-                                            hx-target="#lower-totals"
-                                            hx-swap="outerHTML"
-                                            hx-vals='{"game_player_id": "{{ gp.pk }}", "category": "{{ category.value }}"}'
+                                            data-game-player="{{ gp.pk }}"
+                                            data-category="{{ category.value }}"
                                         >
                                     {% endif %}
                                 </td>
@@ -122,6 +110,8 @@
         <a href="{% url 'game_detail' game.pk %}" class="btn btn-secondary">Zurück</a>
     </div>
 </div>
+
+<script src="{% static 'js/score.js' %}"></script>
 
 <style>
     .score-sheet-wrapper {

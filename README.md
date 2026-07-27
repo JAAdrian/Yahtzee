@@ -40,7 +40,7 @@ Ein kleiner Django-Service, um mit Freunden im echten Leben Kniffel (Yahtzee) zu
    pip install -r requirements.txt
    ```
 
-   Enthalten sind Django, Gunicorn, WhiteNoise, python-dotenv und django-ratelimit. HTMX liegt bereits unter `static/js/htmx.min.js` im Repository, es wird nicht vom CDN geladen.
+    Enthalten sind Django, Gunicorn, WhiteNoise, python-dotenv und django-ratelimit.
 
 4. Lokale Umgebungsvariablen anlegen:
 
