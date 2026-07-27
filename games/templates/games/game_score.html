@@ -25,7 +25,7 @@
             <tbody>
                 {% for category in upper_categories %}
                     <tr>
-                        <td>{{ category.label }}{% if category in fixed_points %} ({{ fixed_points|get_item:category }} Pkte){% endif %}</td>
+                        <td>{{ category.label }}{% if category in fixed_points %} ({{ fixed_points|get_item:category }} P){% endif %}</td>
                         {% for gp in players %}
                             {% with entry=gp.scores_by_category|get_item:category.value %}
                                 <td>
@@ -69,7 +69,7 @@
             <tbody>
                 {% for category in lower_categories %}
                     <tr>
-                        <td>{{ category.label }}{% if category in fixed_points %} ({{ fixed_points|get_item:category }} Pkte){% endif %}</td>
+                        <td>{{ category.label }}{% if category in fixed_points %} ({{ fixed_points|get_item:category }} P){% endif %}</td>
                         {% for gp in players %}
                             {% with entry=gp.scores_by_category|get_item:category.value %}
                                 <td>
