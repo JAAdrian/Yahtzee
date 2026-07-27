@@ -8,10 +8,28 @@
         var gameMatch = window.location.pathname.match(/^\/games\/(\d+)\/score\//);
         var gamePk = gameMatch ? gameMatch[1] : null;
 
-        var debounceTimer = null;
+        var debounceTimers = {};
+
+        var UPPER_BASE = { ones: 1, twos: 2, threes: 3, fours: 4, fives: 5, sixes: 6 };
+
+        function isValidScore(value, baseValue) {
+            if (value === '' || value === null || value === undefined) return true;
+            var n = parseInt(value, 10);
+            return n % baseValue === 0;
+        }
 
         function sendScore(el) {
             if (!el.dataset.gamePlayer || !el.dataset.category) return;
+
+            if (el.tagName === 'INPUT' && el.dataset.category) {
+                var value = el.value;
+                var baseValue = UPPER_BASE[el.dataset.category];
+                if (baseValue && !isValidScore(value, baseValue)) {
+                    el.classList.add('invalid');
+                    return;
+                }
+                el.classList.remove('invalid');
+            }
 
             var gpId = el.dataset.gamePlayer;
             var category = el.dataset.category;
@@ -68,15 +86,32 @@
 
         scoreSheet.addEventListener('input', function(e) {
             var el = e.target;
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(function() {
+            if (el.tagName !== 'INPUT' || !el.dataset.category) return;
+
+            var value = el.value;
+            var baseValue = UPPER_BASE[el.dataset.category];
+
+            if (baseValue && !isValidScore(value, baseValue)) {
+                el.classList.add('invalid');
+                var key = el.name;
+                clearTimeout(debounceTimers[key]);
+                return;
+            }
+
+            el.classList.remove('invalid');
+            var key = el.name;
+            clearTimeout(debounceTimers[key]);
+            debounceTimers[key] = setTimeout(function() {
                 sendScore(el);
             }, 300);
         });
 
         scoreSheet.addEventListener('change', function(e) {
             var el = e.target;
-            clearTimeout(debounceTimer);
+            if (!el.dataset.gamePlayer || !el.dataset.category) return;
+
+            var key = el.name;
+            clearTimeout(debounceTimers[key]);
             sendScore(el);
         });
     });
