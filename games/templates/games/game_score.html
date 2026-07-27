@@ -78,7 +78,7 @@
                                             name="state_{{ gp.pk }}_{{ category.value }}"
                                             hx-post="{% url 'game_score_partial' game.pk %}"
                                             hx-trigger="change"
-                                            hx-target="#upper-totals"
+                                            hx-target="#lower-totals"
                                             hx-swap="outerHTML"
                                             hx-vals='{"game_player_id": "{{ gp.pk }}", "category": "{{ category.value }}"}'
                                         >
@@ -94,7 +94,7 @@
                                             value="{% if entry and entry.is_filled %}{{ entry.value|default:'' }}{% endif %}"
                                             hx-post="{% url 'game_score_partial' game.pk %}"
                                             hx-trigger="change"
-                                            hx-target="#upper-totals"
+                                            hx-target="#lower-totals"
                                             hx-swap="outerHTML"
                                             hx-vals='{"game_player_id": "{{ gp.pk }}", "category": "{{ category.value }}"}'
                                         >
