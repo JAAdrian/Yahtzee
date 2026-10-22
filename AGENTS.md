@@ -1,111 +1,79 @@
 # Agent Notes: Kniffel Tracker
 
-Compact reference for OpenCode sessions working on this Django project.
+Compact reference for OpenCode sessions. User-facing UI, messages, and README are
+German (`LANGUAGE_CODE=de-de`, `TIME_ZONE=Europe/Berlin`); keep new strings German.
 
 ## Project at a Glance
 
-- Single Django 6 app, SQLite by default, German-language UI (de-de / Europe/Berlin).
-- Apps: `users` (Player CRUD), `games` (Game, GamePlayer, ScoreEntry models + scoring logic).
-- Root URL redirects to `/games/`; admin path is configurable via `ADMIN_URL` env var (default `/admin/`).
-- Production responses include a Content-Security-Policy header. Mutating views are protected by `django-ratelimit` (admin login, game/player CRUD, score partial endpoint).
-- Mutating views are protected by `django-ratelimit` (admin login, game/player CRUD, score partial endpoint). Limits are generous enough for normal play.
-- HTMX (loaded from CDN) for reactive scoring; otherwise plain Django templates.
+- Django 6 project (`yahtzee_tracker/`) with two apps: `users` (`Player` CRUD) and
+  `games` (`Game`, `GamePlayer`, `ScoreEntry` + scoring logic).
+- Root `/` redirects to `/games/`. Auth URLs are under `/accounts/`; admin path comes
+  from `ADMIN_URL` (default `/admin/`, `fly.toml` sets `hansvonwurst`).
+- SQLite only; no linter, formatter, typechecker, codegen, or CI config in the repo.
 
-## Environment
+## Environment and Commands
 
-- Target Python: **3.14.6** (declared in `.tool-versions`).
-- A local `.venv/` already exists and should be used.
-- Activate: `source .venv/bin/activate` or use `.venv/bin/python` directly.
-- Dependencies: `requirements.txt` pins `django==6.0.6`, `gunicorn`, `whitenoise`, `python-dotenv`, and `django-ratelimit`.
-- For local development, create a `.env` file with `SECRET_KEY=...` and `DEBUG=True`. The file is gitignored and loaded automatically.
-- HTMX was previously used for reactive scoring but was replaced with vanilla JS + fetch for simplicity and predictability.
+- Use the existing `.venv/`: `.venv/bin/python manage.py <cmd>` (or activate first).
+- `.tool-versions` is the real Python target (**3.14.8**); `Dockerfile` and `README`
+  still say 3.14.6. Don't bump one without the other.
+- Run all tests: `.venv/bin/python manage.py test` (33 tests in
+  `games/tests.py` + `users/tests.py`, currently passing).
+- Run one test:
+  `.venv/bin/python manage.py test games.tests.GameViewTests.test_score_sheet_saves_numeric_values`
+- Tests need no `SECRET_KEY`: `settings.py` injects a test key when `"test"` is in
+  `sys.argv`. Any other command needs `SECRET_KEY`, normally from `.env` (gitignored,
+  auto-loaded). `DEBUG` defaults to `False` when unset.
+- `make test` calls bare `python`, so activate `.venv` first or it may use the wrong
+  interpreter. `make deploy` SSHes to `REMOTE_HOST` and pulls the image; it does not
+  copy files.
 
-## Common Commands
+## Scoring Model
 
-Use `.venv/bin/python manage.py <cmd>` or activate the venv first:
+- The score sheet lazily creates missing rows via `_ensure_score_entries`, so each
+  `GamePlayer` ends up with all 13 `ScoreEntry` rows. Scores use either a numeric
+  `value` or a `state` (`empty`/`filled`/`stricken`).
+- Fixed lower categories (`FULL_HOUSE` 25, `SMALL_STRAIGHT` 30, `LARGE_STRAIGHT` 40,
+  `YAHTZEE` 50) award constant points when filled; `stricken` always contributes 0.
+- `GamePlayer.upper_sum`, `bonus` (+35 at ≥63), `lower_sum`, and `total_score` are
+  computed properties. There is no denormalized total field.
+- POST field names are a hard contract used by views, JS, and tests:
+  - numeric: `score_<gameplayer_id>_<category>`
+  - fixed state: `state_<gameplayer_id>_<category>` (`empty`, `filled`, `stricken`)
+- Upper-section inputs are validated **only client-side** in `static/js/score.js`:
+  values must be multiples of the category base (e.g. twos must be even). The Django
+  views accept any integer, so server-side tests don't enforce this.
+- `game_score_partial` is **not** an HTMX endpoint despite the docstring. `score.js`
+  uses `fetch` (300 ms debounce on `input`, immediate on `change`) and posts to
+  `/games/<pk>/score-partial/`. It needs the `csrf-token` meta tag from `base.html`
+  and the `data-game-player` / `data-category` attributes on inputs.
+- The partial response contains `<tbody id="__upper__">` / `<tbody id="__lower__">`,
+  which the JS regex-extracts into `#upper-totals` / `#lower-totals`. Changing the
+  scoring UI means updating `game_score.html`, `game_score_partial.html`, the two
+  `_score_totals_*.html` includes, and `score.js` together.
+- Invalid partial requests (bad category/value, finished game) return HTTP 204 with a
+  flash message; open pages won't display it and totals simply stay stale.
 
-- Run dev server: `python manage.py runserver` → http://127.0.0.1:8000/
-- Run tests: `python manage.py test` (33 tests across `users/tests.py`, `games/tests.py`). Tests use an internal test-only `SECRET_KEY`, so no env var is needed locally.
-- Run one app’s tests: `python manage.py test games` or `python manage.py test users`
-- Apply migrations: `python manage.py migrate`
-- Create admin user: `python manage.py createsuperuser`
+## Access and Behavior Gotchas
 
-Make shortcuts (verify `GITHUB_USER` / `GITHUB_TOKEN` / `REMOTE_HOST` / `REMOTE_DIR`):
+- Public: game list/detail/results, leaderboard, player list/detail.
+- Login required: creating/editing/deleting players, creating/deleting/finishing
+  games, adding players, and both score views. Mutating POSTs also use
+  `django-ratelimit` (10–120/min).
+- Rate limiting uses `LocMemCache`; it is per-process. Scaling beyond one process or
+  machine needs a shared cache.
+- `game_finish` GET renders a confirmation; only POST marks the game complete.
+- Leaderboard wins come from `Game.ranked_players()`; on a tie only the first sorted
+  player counts as winner (ties are not split).
+- `Player.name` is DB-unique but case-sensitive. Creation checks `name__iexact`;
+  `player_update` has no such duplicate guard.
 
-- `make test` — run Django tests
-- `make build` — build Docker image
-- `make deploy REMOTE_HOST=... REMOTE_DIR=...` — SSH pull + recreate container
+## Deploy Notes
 
-## Key Architecture Details
-
-- `ScoreEntry` uses a single TextChoices category set. Fixed lower-section categories (Full House, Small/Large Straight, Yahtzee) award constant points when state is `filled`; `stricken` always contributes 0.
-- `game_score` view POST handles both numeric categories and fixed-category state dropdowns. Field names in HTML must be:
-  - Numeric: `score_<gameplayer_id>_<category>`
-  - Fixed state: `state_<gameplayer_id>_<category>` (values: `empty`, `filled`, `stricken`)
-- `game_score_partial` is an HTMX endpoint that saves a single changed entry on `change` and returns updated total rows (`#upper-totals` and `#lower-totals` via `hx-swap-oob`).
-- `GamePlayer.total_score` is computed on the fly from `ScoreEntry` rows; there is no denormalized total field.
-- Creating/editing/deleting players and games is restricted to authenticated users via `@login_required`; lists and detail/result/leaderboard views remain public.
-- Leaderboard counts wins by checking whether a player ranked first in each completed game.
-
-## Docker / Production Notes
-
-- `docker compose up -d --build` uses SQLite persisted in named volume `kniffel_data` mounted at `/app/data`.
-- The container entrypoint (`docker-entrypoint.sh`) runs `collectstatic --noinput` and `migrate --noinput` on every start, then launches Gunicorn.
-- Override in `docker-compose.yml` before real deployment: `SECRET_KEY`, `DEBUG=False`, `ALLOWED_HOSTS`.
-- `DATABASE_PATH` env var overrides the SQLite location; Docker sets it to `/app/data/db.sqlite3`.
-- Production static files are served by WhiteNoise; `STATIC_ROOT` is `BASE_DIR / "staticfiles"`.
-- `Makefile` defaults to `GITHUB_USER=jaadrian`; override via env or argument.
-
-## Fly.io Deployment
-
-The repo includes a `fly.toml` that builds the image from the repo's `Dockerfile` and deploys it with a persistent Fly Volume for the SQLite database.
-
-### First-time setup
-
-```bash
-fly apps create yahtzee
-fly volumes create kniffel_data --region ams --size 1
-fly secrets set SECRET_KEY="<generate-with-secrets.token_urlsafe(50)>" ALLOWED_HOSTS="yahtzee.fly.dev"
-fly deploy
-```
-
-### Required env vars
-
-- `SECRET_KEY` — Django secret key (required, never use the dev default).
-- `ALLOWED_HOSTS` — Fly app hostname(s), comma-separated; used by Django host validation.
-- `DATABASE_PATH` — already set in `fly.toml` to `/app/data/db.sqlite3`.
-- `DEBUG` — set to `"False"` in `fly.toml`.
-- `SECURE_PROXY_SSL_HEADER` and `CSRF_TRUSTED_ORIGINS` are configured in `settings.py` so HTTPS/CSRF work behind Fly's proxy.
-
-### fly.toml notes
-
-- Build source: the repo's `Dockerfile` (managed by Fly on deploy).
-- Volume `kniffel_data` is mounted at `/app/data` so SQLite survives redeploys.
-- `auto_stop_machines = "stop"` and `min_machines_running = 0` allow the free-scale Machine to stop when idle. If you want it always on, set `min_machines_running = 1` and `auto_stop_machines = "off"`.
-- Because SQLite cannot handle multiple writers safely, keep the app scaled to **a single Machine** (`fly scale count 1`).
-- VM size defaults to `shared-cpu-1x` / 256 MB, which is enough for this app.
-
-### Updating the app
-
-Deploy from the local repo (no Git push required):
-
-```bash
-fly deploy --ha=false
-```
-
-`--ha=false` prevents Fly from launching a second Machine, which would break the single-volume SQLite setup.
-
-### Creating an admin user on Fly
-
-```bash
-fly ssh console
-python /app/manage.py createsuperuser
-```
-
-## Things That Are Easy to Miss
-
-- `SECRET_KEY` is required; the app raises `ImproperlyConfigured` if it is missing. Tests use an internal test-only key.
-- `DEBUG` defaults to `False` when unset. Use `DEBUG=True` in `.env` for local development only.
-- `ALLOWED_HOSTS` is empty in debug mode and `localhost/127.0.0.1` in production mode if not explicitly set.
-- Player names are unique case-insensitively (`Player.name` is unique at DB level; the view normalizes duplicates via lowercase comparison).
-- The `.gitignore` explicitly ignores `AGENTS.md`; if you edit this file, stage it manually with `git add -f AGENTS.md`.
+- Local DB is `db.sqlite3` (gitignored); `DATABASE_PATH` overrides the location.
+- Docker entrypoint runs `collectstatic` + `migrate` on every start, then Gunicorn
+  with 2 workers. SQLite lives in volume `kniffel_data` at `/app/data`.
+- Docker Compose ships placeholder `SECRET_KEY`/`ALLOWED_HOSTS`; override before use.
+- Fly builds from `Dockerfile` and keeps SQLite on one volume. Keep exactly one
+  Machine and deploy with `fly deploy --ha=false`; multiple writers can corrupt SQLite.
+- `README.md` has the full Docker/Fly setup and backup commands; prefer it over
+  duplicating deployment steps here.
